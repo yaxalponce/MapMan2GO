@@ -1,0 +1,68 @@
+---
+title: "MapMan2GO - Labbook"
+author: "Dr. Asis Hallab"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Step by step workflow used to map MapMan Bins to compound Gene Ontology Term Annotations
+
+### Use UniprotKB Swissprot as reference set
+
+Curated entries in Swissprot will be used as reference data. Only 100 percent sequence identity will be accepted. 
+
+#### Run sequence similarity search against Swissprot
+
+Swissprot version is from December 2016. Sequence Similarity Search is carried out with Diamond version (v0.7.9.58).
+
+Generate the database from Swissprot:
+
+`diamond makedb --in uniprot_sprot.fasta -d uniprot_sprot`
+
+Submit job to cluster:
+
+`bsub -q multicore40 -g /dmnd -e ./dmnd.err -o ./dmnd.out -n 10 -R 'span[hosts=1] rusage[mem=128]' 'diamond blastp -q ../MapMan2GO/inst/mapman4.fasta -d ./uniprot_sprot.dmnd -p 10 -a mapman4_vs_sprot -t /scratch/'`
+
+Convert search results to tabular Blast output format: `diamond view -a mapman4_vs_sprot.daa -o mapman4_vs_sprot_blast8.txt`
+
+And retain only matches of 100 percent sequence identity: `awk -F "\t" '{if ($3 == 100.0) { print $1 "\t" $2 }}' mapman4_vs_sprot_blast8.txt | sort -u > mapman4_vs_sprot_blast8_only_100percnt.txt` (Result in this R package's `inst` folder)
+
+### Prepare UniprotKB Gene Ontology Annotations (GOA) for processing in R
+
+Download `wget ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpa.gz`
+
+Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: `awk -F "\t" '/^UniProtKB/ {print $6 "\t" $4 "\t" $2}' goa_uniprot_all.gpa > goa_uniprot_all_tbl.txt` (Result in this R package's `inst` folder)
+
+## Figures
+
+The figure sizes have been customised so that you can easily put two images side-by-side. 
+
+```{r, fig.show='hold'}
+plot(1:10)
+plot(10:1)
+```
+
+You can enable figure captions by `fig_caption: yes` in YAML:
+
+    output:
+      rmarkdown::html_vignette:
+        fig_caption: yes
+
+Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+
+## More Examples
+
+You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(mtcars, 10))
+```
+
+Also a quote using `>`:
+
+> "He who gives up [code] safety for [code] speed deserves neither."
+([via](https://twitter.com/hadleywickham/status/504368538874703872))

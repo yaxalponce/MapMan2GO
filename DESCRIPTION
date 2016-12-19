@@ -1,9 +1,21 @@
 Package: MapMan2GO
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Based on Gene Ontology annotations of reference proteins map MapMan Bins
+    to compound GO annotations.
+Version: 0.1
 Date: 2016-12-16
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Dr. Asis Hallab <asis.hallab@gmail.com>
+Maintainer: Dr. Asis Hallab <asis.hallab@gmail.com>
+Description: Based on Gene Ontology annotations of reference proteins map
+    MapMan Bins to compound GO annotations. Also assess quality of mappings in
+    terms of Evidence Codes and frequency of reference GO annotations within
+    each respective MapMan Bin.
+License: none
+Depends:
+    R (>= 3.0.0),
+    parallel (>=3.0.0),
+    seqinr (>= 3.1.3)
+RoxygenNote: 5.0.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
