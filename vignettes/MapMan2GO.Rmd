@@ -35,34 +35,18 @@ And retain only matches of 100 percent sequence identity: `awk -F "\t" '{if ($3 
 
 Download `wget ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpa.gz`
 
-Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: `awk -F "\t" '/^UniProtKB/ {print $6 "\t" $4 "\t" $2}' goa_uniprot_all.gpa > goa_uniprot_all_tbl.txt` (Result in this R package's `inst` folder)
+Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: `awk -F "\t" '/^UniProtKB/ {print $6 "\t" $4 "\t" $2}' goa_uniprot_all.gpa | sort -u > goa_uniprot_all_tbl.txt` (Result in this R package's `inst` folder)
 
-## Figures
+Reduceuce the reference GOAs to those genes in relation with MapManBins (see next section).
 
-The figure sizes have been customised so that you can easily put two images side-by-side. 
+### Load MapManBin to Swissprot relations and reduce GOAs to those referenced in the former
 
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
-```
+Done with R script in this package: `Rscript ./exec/loadSeqSimResults.R path/2/preProcessedSeqSimSearchResults.txt path/2/UniProtKB_GOA_preprocessed.txt path/2/MapMan2GO`
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+The R script saves the resulting data.frames into a binary image in this package's data folder.
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+## Assign the MapMan-Bins compound Gene Ontology Annotations based on the reference annotations found for genes related to the respective Bins
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+The following R script does the job, saves the resulting data.frames in binary format in this R package's data folder and generates some plots about the assignment's quality and trustworthyness.
 
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
-```
-
-Also a quote using `>`:
-
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+`Rscript ./exec/mapBinsToGOs.R path/2/MapMan2GO`

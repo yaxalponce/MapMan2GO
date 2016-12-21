@@ -1,0 +1,21 @@
+<h2 id="step-by-step-workflow-used-to-map-mapman-bins-to-compound-gene-ontology-term-annotations">Step by step workflow used to map MapMan Bins to compound Gene Ontology Term Annotations</h2>
+<h3 id="use-uniprotkb-swissprot-as-reference-set">Use UniprotKB Swissprot as reference set</h3>
+<p>Curated entries in Swissprot will be used as reference data. Only 100 percent sequence identity will be accepted.</p>
+<h4 id="run-sequence-similarity-search-against-swissprot">Run sequence similarity search against Swissprot</h4>
+<p>Swissprot version is from December 2016. Sequence Similarity Search is carried out with Diamond version (v0.7.9.58).</p>
+<p>Generate the database from Swissprot:</p>
+<p><code>diamond makedb --in uniprot_sprot.fasta -d uniprot_sprot</code></p>
+<p>Submit job to cluster:</p>
+<p><code>bsub -q multicore40 -g /dmnd -e ./dmnd.err -o ./dmnd.out -n 10 -R 'span[hosts=1] rusage[mem=128]' 'diamond blastp -q ../MapMan2GO/inst/mapman4.fasta -d ./uniprot_sprot.dmnd -p 10 -a mapman4_vs_sprot -t /scratch/'</code></p>
+<p>Convert search results to tabular Blast output format: <code>diamond view -a mapman4_vs_sprot.daa -o mapman4_vs_sprot_blast8.txt</code></p>
+<p>And retain only matches of 100 percent sequence identity: <code>awk -F &quot;\t&quot; '{if ($3 == 100.0) { print $1 &quot;\t&quot; $2 }}' mapman4_vs_sprot_blast8.txt | sort -u &gt; mapman4_vs_sprot_blast8_only_100percnt.txt</code> (Result in this R package's <code>inst</code> folder)</p>
+<h3 id="prepare-uniprotkb-gene-ontology-annotations-goa-for-processing-in-r">Prepare UniprotKB Gene Ontology Annotations (GOA) for processing in R</h3>
+<p>Download <code>wget ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpa.gz</code></p>
+<p>Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: <code>awk -F &quot;\t&quot; '/^UniProtKB/ {print $6 &quot;\t&quot; $4 &quot;\t&quot; $2}' goa_uniprot_all.gpa | sort -u &gt; goa_uniprot_all_tbl.txt</code> (Result in this R package's <code>inst</code> folder)</p>
+<p>Reduceuce the reference GOAs to those genes in relation with MapManBins (see next section).</p>
+<h3 id="load-mapmanbin-to-swissprot-relations-and-reduce-goas-to-those-referenced-in-the-former">Load MapManBin to Swissprot relations and reduce GOAs to those referenced in the former</h3>
+<p>Done with R script in this package: <code>Rscript ./exec/loadSeqSimResults.R path/2/preProcessedSeqSimSearchResults.txt path/2/UniProtKB_GOA_preprocessed.txt path/2/MapMan2GO</code></p>
+<p>The R script saves the resulting data.frames into a binary image in this package's data folder.</p>
+<h2 id="assign-the-mapman-bins-compound-gene-ontology-annotations-based-on-the-reference-annotations-found-for-genes-related-to-the-respective-bins">Assign the MapMan-Bins compound Gene Ontology Annotations based on the reference annotations found for genes related to the respective Bins</h2>
+<p>The following R script does the job, saves the resulting data.frames in binary format in this R package's data folder and generates some plots about the assignment's quality and trustworthyness.</p>
+<p><code>Rscript ./exec/mapBinsToGOs.R path/2/MapMan2GO</code></p>
