@@ -47,12 +47,14 @@ partially found in \code{goa.tbl}.}
 An instance of \code{list} with the following named entries:
 'Shannon.Entropy' is the measured entropy of compound GO annotations
 retrieved for the genes related to \code{map.man.bin}. The second entry
-'genes.goa' is a list with each genes' compound GO Annotations, and
-'MapManBin.GO' is the intersection of the genes' compound GO Annotations to
-be used as the MapMan-Bin's compound GO Annotation, n.GO is the number of GO
-Terms in the MapMan-Bin's compound GO Annotation, median.n.GO is the median
-of the number of GO Terms in the genes' GOAs, and n.genes is the number of
-genes related to \code{map.man.bin}.
+'genes.goa' is a list with each genes' compound GO Annotations,
+'mutual.information' holds the mutual information between the Bin's GOA and
+those found for the Bin's reference proteins, 'MapManBin.GO' is the
+intersection of the genes' compound GO Annotations to be used as the
+MapMan-Bin's compound GO Annotation, n.GO is the number of GO Terms in the
+MapMan-Bin's compound GO Annotation, median.n.GO is the median of the number
+of GO Terms in the genes' GOAs, and n.genes is the number of genes related
+to \code{map.man.bin}.
 }
 \description{
 Infers the compound GO annotations found for the genes related to the

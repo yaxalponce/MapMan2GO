@@ -2,4 +2,7 @@
 
 export(compoundGoAnnotation)
 export(compoundGoAnnotationEntropy)
+export(goCounts)
+export(mutualInformationBinGoaGenesGoas)
+export(plotDistAsHistAndBox)
 export(sanitizeAccession)
