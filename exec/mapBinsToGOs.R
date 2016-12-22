@@ -14,6 +14,18 @@ mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
         mutual.information = y[["mutual.information"]], n.GO = y[["n.GO"]], n.genes = y[["n.genes"]], 
         median.n.GO = y[["median.n.GO"]], stringsAsFactors = FALSE)
 }))
+#' Add a full description for each MapMan-Bin's GOA including GO-Term names:
+mm.2.go.df$MapManBin.GO.Names <- as.character(unlist(lapply(mm.2.go.df$MapManBin.GO, 
+    function(goa) {
+        if (!is.null(goa) && goa != "") {
+            paste(unlist(lapply(strsplit(goa, ",")[[1]], function(g.id) {
+                g.t <- GOTERM[[g.id]]
+                if (!is.null(g.t) && length(g.t) > 0) {
+                  paste(attr(g.t, "Term"), " (", attr(g.t, "GOID"), ")", sep = "")
+                } else g.id
+            })), collapse = ", ")
+        } else ""
+    })))
 
 
 #' Some statistics:
