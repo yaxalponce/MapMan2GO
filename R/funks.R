@@ -21,13 +21,22 @@ sanitizeAccession <- function(ukb.accs) {
 #' 3)}.
 #' @param go.col The column of \code{goa.tbl} number or name in which to lookup
 #' the GO terms. Default is \code{getOption('MapMan2GO.goa.tbl.go.col',2)}
+#' @param extend.goas.with.ancestors boolean indicating whether to extend each
+#' proteins' GOA with the ancestors of the respective GO Terms. Default is
+#' \code{TRUE}.
 #'
 #' @export
 #' @return A character holding the GO terms for \code{gene.id}
 compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl", 
     ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3), 
-    go.col = getOption("MapMan2GO.goa.tbl.go.col", 2)) {
-    unique(sort(goa.tbl[which(goa.tbl[, gene.col] == gene.id), go.col]))
+    go.col = getOption("MapMan2GO.goa.tbl.go.col", 2), extend.goas.with.ancestors = TRUE) {
+    res.goa <- unique(sort(goa.tbl[which(goa.tbl[, gene.col] == gene.id), 
+        go.col]))
+    if (extend.goas.with.ancestors) {
+        addAncestors(res.goa)
+    } else {
+        res.goa
+    }
 }
 
 #' Adds all GO Terms that are ancestral to the argument \code{go.terms}.
@@ -46,16 +55,19 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #' @export
 addAncestors <- function(go.terms, ancestors = list(MF = GOMFANCESTOR, 
     BP = GOBPANCESTOR, CC = GOCCANCESTOR), exclude.root = TRUE, root.go = "all") {
-    unlist(lapply(go.term, function(g.id) {
+    sort(unique(unlist(lapply(go.term, function(g.id) {
         g.t <- GOTERM[[g.id]]
         if (!is.null(g.t) && length(g.t) > 0) {
             g.name <- attr(g.t, "Term")
             g.ont <- attr(g.t, "Ontology")
-            c(g.id, get(g.id, go.term.dist.to.root.funks[[g.ont]]))
+            g.incl.anc <- c(g.id, get(g.id, go.term.dist.to.root.funks[[g.ont]]))
+            if (exclude.root) 
+                g.incl.anc <- setdiff(g.incl.anc, root.go)
+            g.incl.anc
         } else {
             g.id
         }
-    }))
+    }))))
 }
 
 #' Infers the compound GO annotations found for the genes related to the
