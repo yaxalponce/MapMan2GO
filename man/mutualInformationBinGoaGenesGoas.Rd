@@ -25,4 +25,3 @@ the sample space. Because each GO Term can only have binary count values in
 the Bin's GOA the Bin's counts are normalized by multiplying with them with
 the number of reference genes.
 }
-

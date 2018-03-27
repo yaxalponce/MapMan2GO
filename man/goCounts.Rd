@@ -21,4 +21,3 @@ A named numeric of empirical counts, names are the events in
 Computes the empirical counts of events in a sample. Events are GO Term
 annotations.
 }
-

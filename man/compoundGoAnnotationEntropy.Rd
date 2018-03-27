@@ -61,4 +61,3 @@ Infers the compound GO annotations found for the genes related to the
 argument MapMan Bin and measures the resulting Shannon Entropy of these
 compound GO annotations.
 }
-

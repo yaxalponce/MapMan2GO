@@ -29,4 +29,3 @@ A character holding the GO terms for \code{gene.id}
 Extracts the unique and sorted Gene Ontology Term Annotations for a given
 gene.
 }
-

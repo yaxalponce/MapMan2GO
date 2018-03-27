@@ -15,17 +15,44 @@ mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
         median.n.GO = y[["median.n.GO"]], stringsAsFactors = FALSE)
 }))
 #' Add a full description for each MapMan-Bin's GOA including GO-Term names:
-mm.2.go.df$MapManBin.GO.Names <- as.character(unlist(lapply(mm.2.go.df$MapManBin.GO, 
-    function(goa) {
-        if (!is.null(goa) && goa != "") {
-            paste(unlist(lapply(strsplit(goa, ",")[[1]], function(g.id) {
-                g.t <- GOTERM[[g.id]]
-                if (!is.null(g.t) && length(g.t) > 0) {
-                  paste(attr(g.t, "Term"), " (", attr(g.t, "GOID"), ")", sep = "")
-                } else g.id
-            })), collapse = ", ")
-        } else ""
+go.term.dist.to.root.funks <- list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR)
+go.terms.not.in.db <- c()
+mm.2.full.desc <- Reduce(rbind, lapply(names(mm.2.go), function(m.b) {
+    m.b.gos <- Reduce(intersect, mm.2.go[[m.b]]$genes.goa)
+    Reduce(rbind, lapply(m.b.gos, function(g.id) {
+        g.t <- GOTERM[[g.id]]
+        if (!is.null(g.t) && length(g.t) > 0) {
+            g.name <- attr(g.t, "Term")
+            g.ont <- attr(g.t, "Ontology")
+            g.depth <- length(get(g.id, go.term.dist.to.root.funks[[g.ont]]))
+            data.frame(MapManBin = m.b, GO.Term = g.id, GO.Name = g.name, GO.Ontolgy = g.ont, 
+                GO.depth = g.depth, stringsAsFactors = FALSE)
+        } else {
+            go.terms.not.in.db <- c(go.terms.not.in.db, g.id)
+            data.frame(MapManBin = m.b, GO.Term = g.id, GO.Name = NA, GO.Ontolgy = NA, 
+                GO.depth = NA, stringsAsFactors = FALSE)
+        }
+    }))
+}))
+#' Warn about missing GO Terms:
+if (length(go.terms.not.in.db) > 0) {
+    message("WARNING: The following GO Terms were assigned to MapManBin(s), but had no entry in the installed 'GO.db' package:\n", 
+        paste(sort(unique(go.terms.not.in.db)), collapse = ", "))
+}
+
+
+#' Add the MapMan Bins Descriptions to the above table:
+mm.fst <- read.fasta(file.path(path.package("MapMan2GO"), "mapman4.fasta"), seqtype = "AA", 
+    strip.desc = TRUE, as.string = TRUE)
+mm.desc.df <- unique(Reduce(rbind, mclapply(mm.fst, function(x) {
+    x.data <- strsplit(attr(x, "Annot"), " \\| ")[[1]]
+    data.frame(MapManBin = x.data[[1]], Description = x.data[[2]], stringsAsFactors = FALSE)
+})))
+mm.2.full.desc$Bin.Description <- as.character(unlist(mclapply(mm.2.full.desc$MapManBin, 
+    function(x) {
+        mm.desc.df[which(mm.desc.df$MapManBin == x), "Description"]
     })))
+
 
 
 #' Some statistics:
@@ -58,7 +85,10 @@ dev.off()
 
 
 #' Save results:
-save(mm.2.go, mm.2.go.df, file = file.path(input.args[[1]], "data", "MapManBins2GO.RData"))
+write.table(mm.2.full.desc, file.path(input.args[[1]], "inst", "MapManBins2GO.txt"), 
+    sep = "\t", row.names = FALSE)
+save(mm.2.go, mm.2.go.df, mm.2.full.desc, mm.desc.df, file = file.path(input.args[[1]], 
+    "data", "MapManBins2GO.RData"))
 
 
 message("DONE")

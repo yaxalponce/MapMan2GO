@@ -19,4 +19,3 @@ TRUE if and only if no error has occurred
 Generates a two row plot with the first one being a Histogram and the secons
 row a horizontal Boxplot.
 }
-

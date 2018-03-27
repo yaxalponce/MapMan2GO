@@ -18,4 +18,3 @@ The short gene accessions extracted from the argument
 Extracts short UniProtKB gene accessions from the long version identifiers,
 e.g. 'sp|Q8GWW7|AGUA_ARATH' will become 'Q8GWW7'.
 }
-

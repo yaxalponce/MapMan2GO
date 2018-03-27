@@ -6,7 +6,7 @@ message("USAGE: Rscript path/2/MapMan2GO/exec/loadSeqSimResults.R path/2/preProc
 input.args <- commandArgs(trailingOnly = TRUE)
 
 #' Sequence Similarity Search Results:
-mm.bins.vs.sprot <- fread(input.args[[1]], data.table = FALSE)
+mm.bins.vs.sprot <- fread(input.args[[1]], data.table = FALSE, stringsAsFactors=FALSE)
 colnames(mm.bins.vs.sprot) <- c("MapManBin", "Swissprot.Hit")
 mm.bins.vs.sprot$Swissprot.Short.ID <- sanitizeAccession(mm.bins.vs.sprot$Swissprot.Hit)
 
