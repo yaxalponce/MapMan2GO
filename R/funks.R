@@ -23,13 +23,14 @@ sanitizeAccession <- function(ukb.accs) {
 #' the GO terms. Default is \code{getOption('MapMan2GO.goa.tbl.go.col',2)}
 #' @param extend.goas.with.ancestors boolean indicating whether to extend each
 #' proteins' GOA with the ancestors of the respective GO Terms. Default is
-#' \code{TRUE}.
+#' \code{getOption('MapMan2GO.extend.goa.with.ancestors', TRUE)}.
 #'
 #' @export
 #' @return A character holding the GO terms for \code{gene.id}
 compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl", 
     ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3), 
-    go.col = getOption("MapMan2GO.goa.tbl.go.col", 2), extend.goas.with.ancestors = TRUE) {
+    go.col = getOption("MapMan2GO.goa.tbl.go.col", 2), extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors", 
+        TRUE)) {
     res.goa <- unique(sort(goa.tbl[which(goa.tbl[, gene.col] == gene.id), 
         go.col]))
     if (extend.goas.with.ancestors) {
@@ -44,8 +45,8 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #' @param go.terms a character vector of GO identifier, e.g.
 #' \code{'GO:006969'}.
 #' @param ancestors a list of keys ontologies and values the respective
-#' ancestral GO terms. Default is \code{list(MF = GOMFANCESTOR, BP =
-#' GOBPANCESTOR, CC = GOCCANCESTOR)}.
+#' ancestral GO terms. Default is \code{getOption('MapMan2GO.term.ancestors',
+#' list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR))}.
 #' @param exclude.root boolean indicating wether to exclude the ROOT GO Term
 #' \code{'all'}. Default is \code{TRUE}.
 #' @param root.go String indicating the ROOT GO Term. Default is \code{'all'}.
@@ -53,8 +54,9 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #' @return A character vector including the argument \code{go.terms} and all
 #' found ancestors.
 #' @export
-addAncestors <- function(go.terms, ancestors = list(MF = GOMFANCESTOR, 
-    BP = GOBPANCESTOR, CC = GOCCANCESTOR), exclude.root = TRUE, root.go = "all") {
+addAncestors <- function(go.terms, ancestors = getOption("MapMan2GO.term.ancestors", 
+    list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR)), exclude.root = TRUE, 
+    root.go = "all") {
     sort(unique(unlist(lapply(go.term, function(g.id) {
         g.t <- GOTERM[[g.id]]
         if (!is.null(g.t) && length(g.t) > 0) {

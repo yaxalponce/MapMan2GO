@@ -8,7 +8,8 @@ gene.}
 compoundGoAnnotation(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl",
   ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3),
   go.col = getOption("MapMan2GO.goa.tbl.go.col", 2),
-  extend.goas.with.ancestors = TRUE)
+  extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors",
+  TRUE))
 }
 \arguments{
 \item{gene.id}{The unique identifier of the gene to lookup GOA for}
@@ -25,7 +26,7 @@ the GO terms. Default is \code{getOption('MapMan2GO.goa.tbl.go.col',2)}}
 
 \item{extend.goas.with.ancestors}{boolean indicating whether to extend each
 proteins' GOA with the ancestors of the respective GO Terms. Default is
-\code{TRUE}.}
+\code{getOption('MapMan2GO.extend.goa.with.ancestors', TRUE)}.}
 }
 \value{
 A character holding the GO terms for \code{gene.id}

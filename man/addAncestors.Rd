@@ -4,16 +4,17 @@
 \alias{addAncestors}
 \title{Adds all GO Terms that are ancestral to the argument \code{go.terms}.}
 \usage{
-addAncestors(go.terms, ancestors = list(MF = GOMFANCESTOR, BP = GOBPANCESTOR,
-  CC = GOCCANCESTOR), exclude.root = TRUE, root.go = "all")
+addAncestors(go.terms, ancestors = getOption("MapMan2GO.term.ancestors",
+  list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR)),
+  exclude.root = TRUE, root.go = "all")
 }
 \arguments{
 \item{go.terms}{a character vector of GO identifier, e.g.
 \code{'GO:006969'}.}
 
 \item{ancestors}{a list of keys ontologies and values the respective
-ancestral GO terms. Default is \code{list(MF = GOMFANCESTOR, BP =
-GOBPANCESTOR, CC = GOCCANCESTOR)}.}
+ancestral GO terms. Default is \code{getOption('MapMan2GO.term.ancestors',
+list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR))}.}
 
 \item{exclude.root}{boolean indicating wether to exclude the ROOT GO Term
 \code{'all'}. Default is \code{TRUE}.}
