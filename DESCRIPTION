@@ -17,7 +17,7 @@ Depends:
     seqinr (>= 3.1.3),
     data.table (>= 1.9.6),
     entropy (>= 1.2.1),
-    GO.db (>= 3.2.2)
+    ontologyIndex (>= 2.4)
 RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown

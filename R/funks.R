@@ -32,7 +32,7 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
     2), extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors", 
     TRUE)) {
     res.goa <- unique(sort(goa.tbl[which(goa.tbl[, gene.col] == gene.id), go.col]))
-    if (extend.goas.with.ancestors) {
+    if (extend.goas.with.ancestors && length(res.goa) > 0) {
         addAncestors(res.goa)
     } else {
         res.goa
@@ -43,27 +43,18 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #'
 #' @param go.terms a character vector of GO identifier, e.g.
 #' \code{'GO:006969'}.
-#' @param ancestors a list of keys ontologies and values the respective
-#' ancestral GO terms. Default is \code{getOption('MapMan2GO.term.ancestors',
-#' go.ancestors)}.
-#' @param exclude.root boolean indicating wether to exclude the ROOT GO Term
-#' \code{'all'}. Default is \code{TRUE}.
-#' @param root.go String indicating the ROOT GO Term. Default is \code{'all'}.
+#' @param go.obo The result of reading the Gene Ontology OBO file with
+#' \code{ontologyIndex::get_ontology('go.obo')}. Default is
+#' \code{getOption('MapMan2GO.go.obo', GO.OBO)}. See \code{MapMan2GO} data for
+#' more details.
 #'
 #' @return A character vector including the argument \code{go.terms} and all
 #' found ancestors.
 #' @export
-addAncestors <- function(go.terms, ancestors = getOption("MapMan2GO.term.ancestors", 
-    go.ancestors), exclude.root = TRUE, root.go = "all") {
+addAncestors <- function(go.terms, go.obo = getOption("MapMan2GO.go.obo", GO.OBO)) {
     sort(unique(unlist(lapply(go.terms, function(g.id) {
-        g.t <- GOTERM[[g.id]]
-        if (!is.null(g.t) && length(g.t) > 0) {
-            g.name <- attr(g.t, "Term")
-            g.ont <- attr(g.t, "Ontology")
-            g.incl.anc <- c(g.id, ancestors[[g.id]])
-            if (exclude.root) 
-                g.incl.anc <- setdiff(g.incl.anc, root.go)
-            g.incl.anc
+        if (g.id %in% go.obo$id) {
+            go.obo$ancestors[[g.id]]
         } else {
             g.id
         }
@@ -116,22 +107,26 @@ compoundGoAnnotationEntropy <- function(map.man.bin, mm.bins.vs.genes = getOptio
     goa.tbl = getOption("MapMan2GO.goa.tbl", ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 
         3), go.col = getOption("MapMan2GO.goa.tbl.go.col", 2), extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors", 
         TRUE)) {
-    gene.ids <- mm.bins.vs.genes[which(mm.bins.vs.genes[, mm.bin.col] == map.man.bin), 
-        mm.gene.col]
-    genes.goa <- setNames(lapply(gene.ids, function(g.id) {
-        compoundGoAnnotation(g.id, goa.tbl, gene.col, go.col)
-    }), gene.ids)
-    s.e <- entropy(table(as.character(unlist(lapply(genes.goa, paste, collapse = ",")))))
-    m.i <- mutualInformationBinGoaGenesGoas(genes.goa)
-    bin.goa <- Reduce(intersect, genes.goa)
-    if (extend.goas.with.ancestors) {
-        bin.goa <- addAncestors(bin.goa)
-    }
-    bin.goa <- sort(bin.goa)
-    list(Shannon.Entropy = s.e, genes.goa = genes.goa, mutual.information = m.i, 
-        MapManBin.GO = paste(bin.goa, collapse = ","), n.GO = length(bin.goa), 
-        median.n.GO = median(unlist(lapply(genes.goa, length)), na.rm = TRUE), 
-        n.genes = length(gene.ids))
+    tryCatch({
+        gene.ids <- mm.bins.vs.genes[which(mm.bins.vs.genes[, mm.bin.col] == map.man.bin), 
+            mm.gene.col]
+        genes.goa <- setNames(lapply(gene.ids, function(g.id) {
+            compoundGoAnnotation(g.id, goa.tbl, gene.col, go.col)
+        }), gene.ids)
+        s.e <- entropy(table(as.character(unlist(lapply(genes.goa, paste, collapse = ",")))))
+        m.i <- mutualInformationBinGoaGenesGoas(genes.goa)
+        bin.goa <- Reduce(intersect, genes.goa)
+        if (extend.goas.with.ancestors) {
+            bin.goa <- addAncestors(bin.goa)
+        }
+        bin.goa <- sort(bin.goa)
+        list(Shannon.Entropy = s.e, genes.goa = genes.goa, mutual.information = m.i, 
+            MapManBin.GO = paste(bin.goa, collapse = ","), n.GO = length(bin.goa), 
+            median.n.GO = median(unlist(lapply(genes.goa, length)), na.rm = TRUE), 
+            n.genes = length(gene.ids))
+    }, error = function(e) {
+        message("MapMan-Bin '", e, "' caused an error:\n", e)
+    })
 }
 
 #' Computes the empirical counts of events in a sample. Events are GO Term
@@ -145,8 +140,12 @@ compoundGoAnnotationEntropy <- function(map.man.bin, mm.bins.vs.genes = getOptio
 #' \code{go.sample.space} and values are the empirical counts as found in
 #' \code{go.annos}.
 goCounts <- function(go.sample.space, go.annos) {
-    setNames(as.numeric(lapply(go.sample.space, function(go.t) length(which(go.annos == 
-        go.t)))), go.sample.space)
+    tryCatch({
+        setNames(as.numeric(lapply(go.sample.space, function(go.t) length(which(go.annos == 
+            go.t)))), go.sample.space)
+    }, error = function(e) {
+        browser()
+    })
 }
 
 #' Compute the mutual information between a MapMan Bin's GOA and the GOAs found

@@ -4,22 +4,16 @@
 \alias{addAncestors}
 \title{Adds all GO Terms that are ancestral to the argument \code{go.terms}.}
 \usage{
-addAncestors(go.terms, ancestors = getOption("MapMan2GO.term.ancestors",
-  list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR)),
-  exclude.root = TRUE, root.go = "all")
+addAncestors(go.terms, go.obo = getOption("MapMan2GO.go.obo", go.obo))
 }
 \arguments{
 \item{go.terms}{a character vector of GO identifier, e.g.
 \code{'GO:006969'}.}
 
-\item{ancestors}{a list of keys ontologies and values the respective
-ancestral GO terms. Default is \code{getOption('MapMan2GO.term.ancestors',
-list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR))}.}
-
-\item{exclude.root}{boolean indicating wether to exclude the ROOT GO Term
-\code{'all'}. Default is \code{TRUE}.}
-
-\item{root.go}{String indicating the ROOT GO Term. Default is \code{'all'}.}
+\item{go.obo}{The result of reading the Gene Ontology OBO file with
+\code{ontologyIndex::get_ontology('go.obo')}. Default is
+\code{getOption('MapMan2GO.go.obo', go.obo)}. See \code{MapMan2GO} data for
+more details.}
 }
 \value{
 A character vector including the argument \code{go.terms} and all

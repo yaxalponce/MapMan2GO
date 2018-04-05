@@ -7,7 +7,7 @@ input.args <- commandArgs(trailingOnly = TRUE)
 
 #' Map MapMan-Bins to compound Gene Ontology Term Annotations (GOA):
 mm.leaf.bins <- unique(mm.bins.vs.sprot$MapManBin)
-mm.2.go <- setNames(mclapply(mm.leaf.bins, compoundGoAnnotationEntropy), mm.leaf.bins)
+mm.2.go <- setNames(lapply(mm.leaf.bins, compoundGoAnnotationEntropy), mm.leaf.bins)
 mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
     y <- mm.2.go[[x]]
     data.frame(MapManBin = x, MapManBin.GO = y[["MapManBin.GO"]], Shannon.Entropy = y[["Shannon.Entropy"]], 
@@ -15,16 +15,19 @@ mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
         median.n.GO = y[["median.n.GO"]], stringsAsFactors = FALSE)
 }))
 #' Add a full description for each MapMan-Bin's GOA including GO-Term names:
-go.term.dist.to.root.funks <- list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR)
 go.terms.not.in.db <- c()
 mm.2.full.desc <- Reduce(rbind, lapply(names(mm.2.go), function(m.b) {
     m.b.gos <- Reduce(intersect, mm.2.go[[m.b]]$genes.goa)
     Reduce(rbind, lapply(m.b.gos, function(g.id) {
-        g.t <- GOTERM[[g.id]]
-        if (!is.null(g.t) && length(g.t) > 0) {
-            g.name <- attr(g.t, "Term")
-            g.ont <- attr(g.t, "Ontology")
-            g.depth <- length(get(g.id, go.term.dist.to.root.funks[[g.ont]]))
+        if (g.id %in% GO.OBO$id) {
+            g.name <- GO.OBO$name[[g.id]]
+            g.ancestors <- GO.OBO$ancestors[[g.id]]
+            g.depth <- length(g.ancestors)
+            g.ont <- if (g.depth > 1) {
+                GO.OBO$name[[g.ancestors[[1]]]]
+            } else {
+                g.name
+            }
             data.frame(MapManBin = m.b, GO.Term = g.id, GO.Name = g.name, GO.Ontolgy = g.ont, 
                 GO.depth = g.depth, stringsAsFactors = FALSE)
         } else {
