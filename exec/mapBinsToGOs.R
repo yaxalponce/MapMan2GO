@@ -16,7 +16,7 @@ mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
 }))
 #' Add a full description for each MapMan-Bin's GOA including GO-Term names:
 go.terms.not.in.db <- c()
-mm.2.full.desc <- Reduce(rbind, lapply(names(mm.2.go), function(m.b) {
+mm.2.full.desc <- Reduce(rbind, mclapply(names(mm.2.go), function(m.b) {
     m.b.gos <- Reduce(intersect, mm.2.go[[m.b]]$genes.goa)
     Reduce(rbind, lapply(m.b.gos, function(g.id) {
         if (g.id %in% GO.OBO$id) {
