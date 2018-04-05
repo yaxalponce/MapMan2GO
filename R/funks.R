@@ -28,11 +28,10 @@ sanitizeAccession <- function(ukb.accs) {
 #' @export
 #' @return A character holding the GO terms for \code{gene.id}
 compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl", 
-    ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3), 
-    go.col = getOption("MapMan2GO.goa.tbl.go.col", 2), extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors", 
-        TRUE)) {
-    res.goa <- unique(sort(goa.tbl[which(goa.tbl[, gene.col] == gene.id), 
-        go.col]))
+    ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3), go.col = getOption("MapMan2GO.goa.tbl.go.col", 
+    2), extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors", 
+    TRUE)) {
+    res.goa <- unique(sort(goa.tbl[which(goa.tbl[, gene.col] == gene.id), go.col]))
     if (extend.goas.with.ancestors) {
         addAncestors(res.goa)
     } else {
@@ -46,7 +45,7 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #' \code{'GO:006969'}.
 #' @param ancestors a list of keys ontologies and values the respective
 #' ancestral GO terms. Default is \code{getOption('MapMan2GO.term.ancestors',
-#' list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR))}.
+#' go.ancestors)}.
 #' @param exclude.root boolean indicating wether to exclude the ROOT GO Term
 #' \code{'all'}. Default is \code{TRUE}.
 #' @param root.go String indicating the ROOT GO Term. Default is \code{'all'}.
@@ -55,14 +54,13 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #' found ancestors.
 #' @export
 addAncestors <- function(go.terms, ancestors = getOption("MapMan2GO.term.ancestors", 
-    list(MF = GOMFANCESTOR, BP = GOBPANCESTOR, CC = GOCCANCESTOR)), exclude.root = TRUE, 
-    root.go = "all") {
-    sort(unique(unlist(lapply(go.term, function(g.id) {
+    go.ancestors), exclude.root = TRUE, root.go = "all") {
+    sort(unique(unlist(lapply(go.terms, function(g.id) {
         g.t <- GOTERM[[g.id]]
         if (!is.null(g.t) && length(g.t) > 0) {
             g.name <- attr(g.t, "Term")
             g.ont <- attr(g.t, "Ontology")
-            g.incl.anc <- c(g.id, get(g.id, go.term.dist.to.root.funks[[g.ont]]))
+            g.incl.anc <- c(g.id, ancestors[[g.id]])
             if (exclude.root) 
                 g.incl.anc <- setdiff(g.incl.anc, root.go)
             g.incl.anc
@@ -96,6 +94,9 @@ addAncestors <- function(go.terms, ancestors = getOption("MapMan2GO.term.ancesto
 #' 3)}.
 #' @param go.col The column of \code{goa.tbl} number or name in which to lookup
 #' the GO terms. Default is \code{getOption('MapMan2GO.goa.tbl.go.col',2)}
+#' @param extend.goas.with.ancestors boolean indicating whether to extend each
+#' proteins' GOA with the ancestors of the respective GO Terms. Default is
+#' \code{getOption('MapMan2GO.extend.goa.with.ancestors', TRUE)}.
 #'
 #' @export
 #' @return An instance of \code{list} with the following named entries:
@@ -111,18 +112,22 @@ addAncestors <- function(go.terms, ancestors = getOption("MapMan2GO.term.ancesto
 #' to \code{map.man.bin}.
 compoundGoAnnotationEntropy <- function(map.man.bin, mm.bins.vs.genes = getOption("MapMan2GO.seq.sim.tbl", 
     mm.bins.vs.sprot), mm.bin.col = getOption("MapMan2GO.seq.sim.tbl.bin.col", 
-    "MapManBin"), mm.gene.col = getOption("MapMan2GO.seq.sim.tbl.gene.col", 
-    "Swissprot.Short.ID"), goa.tbl = getOption("MapMan2GO.goa.tbl", ukb.goa.hits), 
-    gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3), go.col = getOption("MapMan2GO.goa.tbl.go.col", 
-        2)) {
-    gene.ids <- mm.bins.vs.genes[which(mm.bins.vs.genes[, mm.bin.col] == 
-        map.man.bin), mm.gene.col]
+    "MapManBin"), mm.gene.col = getOption("MapMan2GO.seq.sim.tbl.gene.col", "Swissprot.Short.ID"), 
+    goa.tbl = getOption("MapMan2GO.goa.tbl", ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 
+        3), go.col = getOption("MapMan2GO.goa.tbl.go.col", 2), extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors", 
+        TRUE)) {
+    gene.ids <- mm.bins.vs.genes[which(mm.bins.vs.genes[, mm.bin.col] == map.man.bin), 
+        mm.gene.col]
     genes.goa <- setNames(lapply(gene.ids, function(g.id) {
         compoundGoAnnotation(g.id, goa.tbl, gene.col, go.col)
     }), gene.ids)
     s.e <- entropy(table(as.character(unlist(lapply(genes.goa, paste, collapse = ",")))))
     m.i <- mutualInformationBinGoaGenesGoas(genes.goa)
-    bin.goa <- sort(Reduce(intersect, genes.goa))
+    bin.goa <- Reduce(intersect, genes.goa)
+    if (extend.goas.with.ancestors) {
+        bin.goa <- addAncestors(bin.goa)
+    }
+    bin.goa <- sort(bin.goa)
     list(Shannon.Entropy = s.e, genes.goa = genes.goa, mutual.information = m.i, 
         MapManBin.GO = paste(bin.goa, collapse = ","), n.GO = length(bin.goa), 
         median.n.GO = median(unlist(lapply(genes.goa, length)), na.rm = TRUE), 
@@ -161,8 +166,7 @@ mutualInformationBinGoaGenesGoas <- function(genes.goa) {
     bin.gos <- Reduce(intersect, genes.goa)
     go.sample.space <- unique(genes.gos)
     genes.go.counts <- goCounts(go.sample.space, genes.gos)
-    bin.go.counts.norm <- length(genes.goa) * goCounts(go.sample.space, 
-        bin.gos)
+    bin.go.counts.norm <- length(genes.goa) * goCounts(go.sample.space, bin.gos)
     mi.plugin(rbind(genes.go.counts, bin.go.counts.norm), unit = "log2")
 }
 

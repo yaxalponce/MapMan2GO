@@ -50,3 +50,18 @@ for (i in 1:length(uniq.go.term)) {
   go.with.ancestors[[i]] <- get(uniq.go.term[i], ancestors.go)
 }
 
+mm.2.go.df$MapManBin.GO.ancestors <- goas.with.ancestors
+
+
+#### Testing atm
+
+duplicated.GOAs.ancestors <- mm.2.go.df$MapManBin.GO.ancestors[ which(duplicated(mm.2.go.df$MapManBin.GO.ancestors))]
+coords.duplicated.GOAs.ancestors <- which(duplicated(mm.2.go.df$MapManBin.GO.ancestors))
+duplicated.GOAs.ancestors.uniq <- unique(duplicated.GOAs.ancestors)
+
+
+# Look for each duplicated GOA in the data frame mm.2.go.df, must return the Bins
+Bins.GOAs.ancestors <- list()
+for(i in 1:length(duplicated.GOAs.ancestors.uniq)) {
+  Bins.GOAs.ancestors[[i]] <- mm.2.go.df$MapManBin[grep(pattern=duplicated.GOAs.ancestors.uniq[i], mm.2.go.df$MapManBin.GO.ancestors)]
+}

@@ -12,7 +12,9 @@ compoundGoAnnotationEntropy(map.man.bin,
   mm.gene.col = getOption("MapMan2GO.seq.sim.tbl.gene.col",
   "Swissprot.Short.ID"), goa.tbl = getOption("MapMan2GO.goa.tbl",
   ukb.goa.hits), gene.col = getOption("MapMan2GO.goa.tbl.gene.col", 3),
-  go.col = getOption("MapMan2GO.goa.tbl.go.col", 2))
+  go.col = getOption("MapMan2GO.goa.tbl.go.col", 2),
+  extend.goas.with.ancestors = getOption("MapMan2GO.extend.goa.with.ancestors",
+  TRUE))
 }
 \arguments{
 \item{map.man.bin}{The identifier of the MapMan Bin to assign GO terms to.}
@@ -38,6 +40,10 @@ lookup the genes. Default is \code{getOption('MapMan2GO.goa.tbl.gene.col',
 
 \item{go.col}{The column of \code{goa.tbl} number or name in which to lookup
 the GO terms. Default is \code{getOption('MapMan2GO.goa.tbl.go.col',2)}}
+
+\item{extend.goas.with.ancestors}{boolean indicating whether to extend each
+proteins' GOA with the ancestors of the respective GO Terms. Default is
+\code{getOption('MapMan2GO.extend.goa.with.ancestors', TRUE)}.}
 
 \item{mm.bins.vs.genes}{An instance of \code{data.frame} with at least two
 columns. It must hold mappings of \code{map.man.bin} to genes at least
