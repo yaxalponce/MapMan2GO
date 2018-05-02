@@ -2,4 +2,5 @@
     data("GO_OBO", package = "MapMan2GO")
     data("MapManBinsVsSwissprotAndGOA", package = "MapMan2GO")
     data("MapManBins2GO", package = "MapMan2GO")
+    data("UKB_Reference_GOA_InterPro", package = "MapMan2GO")
 }

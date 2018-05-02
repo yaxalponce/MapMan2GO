@@ -50,3 +50,35 @@ The R script saves the resulting data.frames into a binary image in this package
 The following R script does the job, saves the resulting data.frames in binary format in this R package's data folder and generates some plots about the assignment's quality and trustworthyness.
 
 `Rscript ./exec/mapBinsToGOs.R path/2/MapMan2GO`
+
+## Evaluate Mercator's performance based on MapMan-Bin to GO annotations
+
+Using F1-Scores we compare the GO annotations generated for a reference gene set.
+Competetive methods are
+
+- Mercator (MapMan-Bins)
+- InterProScan (InterPro2GO)
+- Best Blast
+- Blasts2GO
+
+### Extract reference GOAs and InterPro-annotations from Swissprot's GOA
+
+As done above we pre-process the large Swissprot GOA file to extract GO and
+InterPro annotations. Then the result is read in in R and only those rows are
+retained that hold function annotations for our "gold standard" (reference gene
+set).
+
+Pre-process goa_uniprot_all.gpa:
+
+`awk -F "\t" '/^UniProtKB/ {if( match($7, /^InterPro/) ){ split($7,a,"|"); for (i in a) { sub(/^InterPro:/, "", a[i]); print $6 "\t" $4 "\t" a[i] "\t" $2 } } else { print  $6 "\t" $4 "\tNA\t" $2 } }' goa_uniprot_all.gpa > goa_uniprot_all_ipr_tbl.txt`
+
+Select a reference genome and extract all gene accessions present in
+Uniprot/Swissprot. Here, we use _Arabidopsis thaliana_:
+
+`grep -P '^>' uniprot_sprot.fasta | grep 'OS=Arabidopsis thaliana' | awk -F '|' '{print $2}' > uniprot_sprot_arabidopsis_thaliana_protein_accessions.txt`
+
+Finally execute the script to extract the reference annotations and store them
+in this project's data:
+
+`Rscript ./exec/extractReferenceGoAnnotations.R goa_uniprot_all_ipr_tbl.txt uniprot_sprot_arabidopsis_thaliana_protein_accessions.txt path/2/MapMan2GO`
+

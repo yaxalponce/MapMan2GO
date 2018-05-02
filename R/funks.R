@@ -115,7 +115,8 @@ compoundGoAnnotationEntropy <- function(map.man.bin, mm.bins.vs.genes = getOptio
         }), gene.ids)
         s.e <- entropy(table(as.character(unlist(lapply(genes.goa, paste, collapse = ",")))))
         m.i <- mutualInformationBinGoaGenesGoas(genes.goa)
-        bin.goa <- Reduce(intersect, genes.goa)
+        bin.goa <- Reduce(intersect, genes.goa[which(as.logical(lapply(genes.goa, 
+            function(x) length(x) > 0 && !is.na(x) && !is.null(x))))])
         if (extend.goas.with.ancestors) {
             bin.goa <- addAncestors(bin.goa)
         }
@@ -169,7 +170,7 @@ mutualInformationBinGoaGenesGoas <- function(genes.goa) {
     mi.plugin(rbind(genes.go.counts, bin.go.counts.norm), unit = "log2")
 }
 
-#' Generates a two row plot with the first one being a Histogram and the secons
+#' Generates a two row plot with the first one being a Histogram and the second
 #' row a horizontal Boxplot.
 #'
 #' @param x The values passed into \code{hist} and \code{boxplot}
@@ -189,4 +190,53 @@ plotDistAsHistAndBox <- function(x, main) {
     boxplot(x, col = "lightgrey", horizontal = TRUE, frame = FALSE, pch = "|")
     par(op)
     TRUE
+}
+
+#' Analyze the number of shared words among the MapMan-Bins descriptions and the
+#' GOs that conform their GOA.
+#'
+#' @param mm.2.go.df.MapManBin.GO a list of the GOAs to analyze that conform the
+#' MapMan-Bin
+#' @param mm.2.go.df.MapManBin a list of the MapMan-Bins to analyze. Must have
+#' the same length as \code{mm.2.go.df.MapManBin.GO}
+#'
+#' @export
+#' @return An instance of \code{data frame} with the following entries:
+#' 'mm.2.go.df.MapManBin' is the MapMan-Bin analyzed.
+#' 'n.words.shared' are the number of words shared between the MapMan-Bins
+#' and their GOAs.
+#' 'percent.shared.words' is the percentage of shared words getween the
+#' MapMan-Bin and its corresponding GOA.
+#' 'bins.gos.shared.words' is a list of words shared.
+#' 'bins.gos.no.shared.words' is a list of the words from the MapMan-Bin
+#' description that are not shared with the GOA.
+analyzeSharedWords <- function(mm.2.go.df.MapManBin.GO, mm.2.go.df.MapManBin) {
+  n.words.shared <- c()
+  bins.gos.shared.words <- c()
+  bins.gos.no.shared.words <- c()
+  percent.shared.words <- c()
+
+  for (j in 1:length(mm.2.go.df.MapManBin.GO)) {
+   splited.st <- strsplit(mm.2.go.df.MapManBin.GO[j], ",")
+  
+    GO.names <- c()
+    for (i in 1:length(splited.st[[1]])) {
+      GO.names[i] <-GO.OBO$name[splited.st[[1]][i]]
+    }
+
+    GO.description.splited <- unique(unlist(strsplit(GO.names, split="[., ,_,:]")))
+    bin.description.splited <- strsplit (sub("\\(", "", sub("\\)", "", sub(",", "", mm.desc.df$Description[ which(mm.desc.df$MapManBin == mm.2.go.df.MapManBin[j])] ))), split="[., ,_,:]")
+    bin.description.splited <- tolower(bin.description.splited[[1]])
+
+    bin.description.splited <- bin.description.splited[which( bin.description.splited %in% unlist(words.to.filter) == "FALSE") ]
+
+    words.grepl <- sapply(bin.description.splited, function(x) any(grepl(x, GO.description.splited, ignore.case=TRUE)))
+    n.words.shared[j] <- length(unique(tolower(names(which(words.grepl == "TRUE")))))
+    bins.gos.shared.words[j] <- paste(unique(tolower(names(which(words.grepl == "TRUE")))), collapse = ",")
+    bins.gos.no.shared.words[j] <- paste(unique(tolower(names(which(words.grepl == "FALSE")))), collapse = ",")
+    percent.shared.words[j] <- n.words.shared[j]/(length(bin.description.splited)+length(GO.description.splited))
+  
+  }
+  info.bins.words <- data.frame(mm.2.go.df.MapManBin, n.words.shared, percent.shared.words, bins.gos.shared.words, bins.gos.no.shared.words)
+  return(info.bins.words)
 }

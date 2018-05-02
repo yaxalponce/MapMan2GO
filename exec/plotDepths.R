@@ -5,52 +5,6 @@ input.args <- commandArgs(trailingOnly = TRUE)
 
 load(input.args[[1]])
 
-#' Bins that share 2 or more GOAs
-coords.bins.sharing <- which((as.numeric(table(mm.2.go.df[which(mm.2.go.df$MapManBin.GO != ""), "MapManBin.GO"]))) != 1)
-
-#' Get which Bins share 
-Bins.sharing.GOAs <- vector()
-for (i in 1:length(coords.bins.sharing)){
-  a <- coords.bins.sharing[i]
-  Bins.sharing.GOAs[i] <- mm.2.go.df$MapManBin[a]
-}
-
-GOAs.shared <- vector()
-for (i in 1:length(coords.bins.sharing)){
-  a <- coords.bins.sharing[i]
-  GOAs.shared[i] <- mm.2.go.df$MapManBin.GO[a]
-}
-
-#' Info about Bins
-Description.Bins.sharing <- vector()
-for (i in 1:length(Bins.sharing.GOAs)){
-  Description.Bins.sharing[i] <- mm.2.full.desc$Bin.Description[grep(pattern = Bins.sharing.GOAs[i], mm.2.full.desc$MapManBin, fixed =T)]
-}
-
-#' Identify most common GOA for each Bin sharing GOAs
-b <- vector()
-for (i in 1:length(Bins.sharing.GOAs)){
-  a <- mm.2.full.desc$GO.Term[grep(pattern = Bins.sharing.GOAs[i], mm.2.full.desc$MapManBin, fixed =T)]
-  b <- append(b,a)
-}
-
-GOAs.Shared.uniq=unique(b)
-m <- data.frame(matrix(NA_real_, ncol=length(Bins.sharing.GOAs), nrow=length(GOAs.Shared.uniq)))
-colnames(m) <- Bins.sharing.GOAs
-rownames(m) <- GOAs.Shared.uniq
-
-More.Frequent.GOA <- vector()
-for (i in 1:length(GOAs.Shared.uniq)){
-  for (j in 1:length(GOAs.Shared.uniq)) {
-    m[j,i] <- if(length(grep(pattern=GOAs.Shared.uniq[j], GOAs.shared[i]))==0) print(0) else length(grep(pattern=GOAs.Shared.uniq[j], GOAs.shared))
-  }
-  More.Frequent.GOA[i] <- GOAs.Shared.uniq[which(m[i]==(max(m[i])))]
-}
-
-
-df <- data.frame(Bins.sharing.GOAs, More.Frequent.GOA[1:length(Bins.sharing.GOAs)], Description.Bins.sharing)
-# write.table(df, file.path(input.args[[2]], "inst", "MapManBinsSharingIdentGOAs.txt"), sep = "\t", row.names = FALSE)
-
 #' Calculate median, max and mean
 meanBins.GO.depth <- vector()
 for (i in 1:length(mm.2.go.df$MapManBin)){
