@@ -4,7 +4,7 @@
 \alias{addAncestors}
 \title{Adds all GO Terms that are ancestral to the argument \code{go.terms}.}
 \usage{
-addAncestors(go.terms, go.obo = getOption("MapMan2GO.go.obo", go.obo))
+addAncestors(go.terms, go.obo = getOption("MapMan2GO.go.obo", GO.OBO))
 }
 \arguments{
 \item{go.terms}{a character vector of GO identifier, e.g.
@@ -12,7 +12,7 @@ addAncestors(go.terms, go.obo = getOption("MapMan2GO.go.obo", go.obo))
 
 \item{go.obo}{The result of reading the Gene Ontology OBO file with
 \code{ontologyIndex::get_ontology('go.obo')}. Default is
-\code{getOption('MapMan2GO.go.obo', go.obo)}. See \code{MapMan2GO} data for
+\code{getOption('MapMan2GO.go.obo', GO.OBO)}. See \code{MapMan2GO} data for
 more details.}
 }
 \value{

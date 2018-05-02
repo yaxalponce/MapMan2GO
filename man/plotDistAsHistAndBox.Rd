@@ -2,7 +2,7 @@
 % Please edit documentation in R/funks.R
 \name{plotDistAsHistAndBox}
 \alias{plotDistAsHistAndBox}
-\title{Generates a two row plot with the first one being a Histogram and the secons
+\title{Generates a two row plot with the first one being a Histogram and the second
 row a horizontal Boxplot.}
 \usage{
 plotDistAsHistAndBox(x, main)
@@ -16,6 +16,6 @@ plotDistAsHistAndBox(x, main)
 TRUE if and only if no error has occurred
 }
 \description{
-Generates a two row plot with the first one being a Histogram and the secons
+Generates a two row plot with the first one being a Histogram and the second
 row a horizontal Boxplot.
 }

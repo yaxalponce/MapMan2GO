@@ -12,7 +12,7 @@ ukb.ref.goas <- as.data.frame(ukb.goa[which(ukb.goa$V4 %in% ref.gene.ids), ])
 
 
 #' Save results:
-save(ukb.ref.goas, file = file.path(input.args[[3]], "data", "UKB_Reference_GOA_InterPro.RData"))
+save(ukb.ref.goas, ref.gene.ids, file = file.path(input.args[[3]], "data", "UKB_Reference_GOA_InterPro.RData"))
 
 
 message("DONE")

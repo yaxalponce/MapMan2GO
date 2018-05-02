@@ -200,7 +200,6 @@ plotDistAsHistAndBox <- function(x, main) {
 #' @param mm.2.go.df.MapManBin a list of the MapMan-Bins to analyze. Must have
 #' the same length as \code{mm.2.go.df.MapManBin.GO}
 #'
-#' @export
 #' @return An instance of \code{data frame} with the following entries:
 #' 'mm.2.go.df.MapManBin' is the MapMan-Bin analyzed.
 #' 'n.words.shared' are the number of words shared between the MapMan-Bins
@@ -210,33 +209,78 @@ plotDistAsHistAndBox <- function(x, main) {
 #' 'bins.gos.shared.words' is a list of words shared.
 #' 'bins.gos.no.shared.words' is a list of the words from the MapMan-Bin
 #' description that are not shared with the GOA.
+#' @export
 analyzeSharedWords <- function(mm.2.go.df.MapManBin.GO, mm.2.go.df.MapManBin) {
-  n.words.shared <- c()
-  bins.gos.shared.words <- c()
-  bins.gos.no.shared.words <- c()
-  percent.shared.words <- c()
-
-  for (j in 1:length(mm.2.go.df.MapManBin.GO)) {
-   splited.st <- strsplit(mm.2.go.df.MapManBin.GO[j], ",")
-  
-    GO.names <- c()
-    for (i in 1:length(splited.st[[1]])) {
-      GO.names[i] <-GO.OBO$name[splited.st[[1]][i]]
+    n.words.shared <- c()
+    bins.gos.shared.words <- c()
+    bins.gos.no.shared.words <- c()
+    percent.shared.words <- c()
+    
+    for (j in 1:length(mm.2.go.df.MapManBin.GO)) {
+        splited.st <- strsplit(mm.2.go.df.MapManBin.GO[j], ",")
+        
+        GO.names <- c()
+        for (i in 1:length(splited.st[[1]])) {
+            GO.names[i] <- GO.OBO$name[splited.st[[1]][i]]
+        }
+        
+        GO.description.splited <- unique(unlist(strsplit(GO.names, split = "[., ,_,:]")))
+        bin.description.splited <- strsplit(sub("\\(", "", sub("\\)", "", sub(",", 
+            "", mm.desc.df$Description[which(mm.desc.df$MapManBin == mm.2.go.df.MapManBin[j])]))), 
+            split = "[., ,_,:]")
+        bin.description.splited <- tolower(bin.description.splited[[1]])
+        
+        bin.description.splited <- bin.description.splited[which(bin.description.splited %in% 
+            unlist(words.to.filter) == "FALSE")]
+        
+        words.grepl <- sapply(bin.description.splited, function(x) any(grepl(x, 
+            GO.description.splited, ignore.case = TRUE)))
+        n.words.shared[j] <- length(unique(tolower(names(which(words.grepl == "TRUE")))))
+        bins.gos.shared.words[j] <- paste(unique(tolower(names(which(words.grepl == 
+            "TRUE")))), collapse = ",")
+        bins.gos.no.shared.words[j] <- paste(unique(tolower(names(which(words.grepl == 
+            "FALSE")))), collapse = ",")
+        percent.shared.words[j] <- n.words.shared[j]/(length(bin.description.splited) + 
+            length(GO.description.splited))
+        
     }
+    info.bins.words <- data.frame(mm.2.go.df.MapManBin, n.words.shared, percent.shared.words, 
+        bins.gos.shared.words, bins.gos.no.shared.words)
+    return(info.bins.words)
+}
 
-    GO.description.splited <- unique(unlist(strsplit(GO.names, split="[., ,_,:]")))
-    bin.description.splited <- strsplit (sub("\\(", "", sub("\\)", "", sub(",", "", mm.desc.df$Description[ which(mm.desc.df$MapManBin == mm.2.go.df.MapManBin[j])] ))), split="[., ,_,:]")
-    bin.description.splited <- tolower(bin.description.splited[[1]])
-
-    bin.description.splited <- bin.description.splited[which( bin.description.splited %in% unlist(words.to.filter) == "FALSE") ]
-
-    words.grepl <- sapply(bin.description.splited, function(x) any(grepl(x, GO.description.splited, ignore.case=TRUE)))
-    n.words.shared[j] <- length(unique(tolower(names(which(words.grepl == "TRUE")))))
-    bins.gos.shared.words[j] <- paste(unique(tolower(names(which(words.grepl == "TRUE")))), collapse = ",")
-    bins.gos.no.shared.words[j] <- paste(unique(tolower(names(which(words.grepl == "FALSE")))), collapse = ",")
-    percent.shared.words[j] <- n.words.shared[j]/(length(bin.description.splited)+length(GO.description.splited))
-  
-  }
-  info.bins.words <- data.frame(mm.2.go.df.MapManBin, n.words.shared, percent.shared.words, bins.gos.shared.words, bins.gos.no.shared.words)
-  return(info.bins.words)
+#' Wraps \c{base::read.table} to parse the result produced by 'Mercator'.
+#'
+#' @param path.2.mercator.result.tbl The valid file path to the text file
+#' holding the table produced as result by Mercator.
+#' @param add.go.terms If set to \c{TRUE} the MapMan-Bin to Gene Ontology Term
+#' mappings are looked up and automatically added as an additional column.
+#' Default is \c{getOption('MapMan2GO.add.GO.terms', TRUE)}
+#' @param map.man.bins.2.go An instance of \c{base::data.frame} holding the
+#' MapMan-Bin to Gene Ontology Term mappings. It must have at least two
+#' columns: One named 'MapManBin' holding the BINCODEs and another named
+#' 'MapManBin.GO' holding the compound GO Term annotations separated by comma.
+#' Default is \c{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.
+#'
+#' @return An instance of \c{base::data.frame} holding the results of the
+#' mercator annotation pipeline.
+#' @export
+readMercatorResultTable <- function(path.2.mercator.result.tbl, add.go.terms = getOption("MapMan2GO.add.GO.terms", 
+    TRUE), map.man.bins.2.go = getOption("MapMan2GO.map.man.bins.2.go", mm.2.go.df)) {
+    m.df <- read.table(path.2.mercator.result.tbl, header = TRUE, sep = "\t", colClasses = c(rep("character", 
+        4), "logical"), quote = "", na.strings = "", comment.char = "", stringsAsFactors = FALSE)
+    for (i.col in colnames(m.df)) {
+        if (class(m.df[, i.col]) == "character") {
+            m.df[, i.col] <- sub("^\\s*'", "", sub("'\\s*$", "", m.df[, i.col]))
+        }
+    }
+    if (add.go.terms) {
+        m.df$MapManBin.GO <- unlist(lapply(m.df$BINCODE, function(mm.bin) {
+            i <- which(map.man.bins.2.go$MapManBin == mm.bin)
+            if (length(i) > 0) {
+                map.man.bins.2.go[[i, "MapManBin.GO"]]
+            } else NA
+        }))
+    }
+    m.df
 }
