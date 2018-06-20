@@ -1,4 +1,7 @@
 require(MapMan2GO)
+
+message("USAGE: Rscript path/2/MapMan2GO/addGOstoGOAs.R path/2/MapMan2GO")
+
 input.args <- commandArgs(trailingOnly = TRUE)
 
 words.to.filter <- fread(file.path(input.args[[1]], "inst", "words2filter"), header = FALSE)
@@ -107,7 +110,63 @@ for (j in 1:n) {
     }
 }
 
+#' Prepare data to graph number of GO sharing words with Bins
+GO.description.splited <- c()
+n.GO.sharing <- c()
+for (j in 1:length(mm.2.go.df$MapManBin.GO)) {
+    splited.st <- strsplit(mm.2.go.df$MapManBin.GO[j], ",")
+    bin.description.splited <- strsplit(gsub("\\(", "", gsub("\\)", "", gsub(",", 
+        "", mm.desc.df$Description[which(mm.desc.df$MapManBin == mm.2.go.df$MapManBin[j])]))), 
+        split = "[., ,_,:]")
 
+    bin.description.splited <- if (!length(bin.description.splited)) {
+		    c("na")
+    } else tolower(bin.description.splited[[1]])
+    
+    # bin.description.splited <- tolower(bin.description.splited[[1]])
+    bin.description.splited <- bin.description.splited[which(bin.description.splited %in% 
+        unlist(words.to.filter) == "FALSE")]
+
+    GO.names <- c()
+    COUNT = 0
+    for (i in 1:length(splited.st[[1]])) {
+        GO.names[i] <- GO.OBO$name[splited.st[[1]][i]]
+	GO.description.splited <- unique(unlist(strsplit(GO.names, split = "[., ,_,:]")))
+	words.grepl <- sapply(bin.description.splited, function(x) any(grepl(x, 
+            GO.description.splited[i], ignore.case = TRUE)))
+	if(any(words.grepl == TRUE)) {
+            COUNT = COUNT + 1
+        }
+    n.GO.sharing[j] <- COUNT
+    }
+}
+n.GO.inters <- mm.2.go.df$n.GO
+
+n.GO.percent.sharing <- c()
+for (i in 1:length(n.GO.inters)) {
+      n.GO.percent.sharing[i] <- n.GO.sharing[i]/n.GO.inters[i]
+}
+
+##' - Histogram of Entropies
+pdf(file.path(input.args[[1]], "inst", "MapManBinGoaEntropyHist.pdf"))
+plotDistAsHistAndBox(mm.2.go.df$Shannon.Entropy, "Shannon Entropy of compound GO Annotations per MapMan-Bin")
+dev.off()
+
+##' - Histogram of Sizes in terms of number of genes
+pdf(file.path(input.args[[1]], "inst", "GenesPerMapManBinHist.pdf"))
+plotDistAsHistAndBox(mm.2.go.df$n.genes, "Number of genes per MapMan-Bin")
+dev.off()
+
+##' - Number of genes vs Number of GO Terms in the Bin-GOA:
+pdf(file.path(input.args[[1]], "inst", "NumberOfGenesVsNumberOfGoTermsInMapManBinGOA.pdf"))
+plot(mm.2.go.df$n.genes, mm.2.go.df$n.GO, xlab = "Number of genes per MapMan-Bin",
+    ylab = "Number of GO Terms in MapMan-Bin-GOA", pch = 20)
+dev.off()
+
+##' - Mutual information Histogram
+pdf(file.path(input.args[[1]], "inst", "DistributionOfMutualInformationBetweenBinGoaAndReferenceGoas.pdf"))
+plotDistAsHistAndBox(mm.2.go.df$mutual.information, "Mutual Information between Bin GOA and reference GOAs [bits]")
+dev.off()
 
 #' Plot the percent of shared words among the MapMan-Bins and GOAs descriptions
 pdf(file.path(input.args[[1]], "inst", "MapManBin.GOAs.Shared.Words.pdf"))
@@ -141,4 +200,16 @@ pdf(file.path(input.args[[1]], "inst", "MRCA-Dist.Hist.pdf"))
 hist(MRCA.Dist, col = "lightgrey", xlab = "MRCA-Dist", main = "Histogram of the distance to the most recent common ancestor")
 dev.off()
 
+#' - Scatterplot of GO terms sharing words with MapMan-Bin description
+pdf(file.path(input.args[[1]], "inst", "GO.Terms.Sharing.MapMan-Bin.Description.pdf"))
+  plot(n.GO.sharing, n.GO.inters, main="GO Terms Sharing MapMan-Bin Description", xlab="Number of GO-Terms sharing words with MapMan Description", ylab="Number of GO Terms", pch = 20)
+dev.off()
 
+#' - Histogram of percent of GO terms that share words with the MapMan-Bin description
+pdf(file.path(input.args[[1]], "inst", "GO.Terms.Sharing.Words.Percent.pdf"))
+hist(n.GO.percent.sharing, col = "lightgrey", xlab= "Percent of GO terms sharing at least one word", main = "GO terms sharing words with the MapMan-Bin description")
+dev.off()
+
+
+#' Save results:
+save(mm.2.go, mm.2.go.df, mm.2.full.desc, mm.desc.df, file = file.path(input.args[[1]], "data", "MapManBins2GO.RData"))

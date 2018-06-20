@@ -2,7 +2,7 @@
 % Please edit documentation in R/funks.R
 \name{readMercatorResultTable}
 \alias{readMercatorResultTable}
-\title{Wraps \c{base::read.table} to parse the result produced by 'Mercator'.}
+\title{Wraps \code{base::read.table} to parse the result produced by 'Mercator'.}
 \usage{
 readMercatorResultTable(path.2.mercator.result.tbl,
   add.go.terms = getOption("MapMan2GO.add.GO.terms", TRUE),
@@ -12,20 +12,20 @@ readMercatorResultTable(path.2.mercator.result.tbl,
 \item{path.2.mercator.result.tbl}{The valid file path to the text file
 holding the table produced as result by Mercator.}
 
-\item{add.go.terms}{If set to \c{TRUE} the MapMan-Bin to Gene Ontology Term
+\item{add.go.terms}{If set to \code{TRUE} the MapMan-Bin to Gene Ontology Term
 mappings are looked up and automatically added as an additional column.
-Default is \c{getOption('MapMan2GO.add.GO.terms', TRUE)}}
+Default is \code{getOption('MapMan2GO.add.GO.terms', TRUE)}}
 
-\item{map.man.bins.2.go}{An instance of \c{base::data.frame} holding the
+\item{map.man.bins.2.go}{An instance of \code{base::data.frame} holding the
 MapMan-Bin to Gene Ontology Term mappings. It must have at least two
 columns: One named 'MapManBin' holding the BINCODEs and another named
 'MapManBin.GO' holding the compound GO Term annotations separated by comma.
-Default is \c{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.}
+Default is \code{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.}
 }
 \value{
-An instance of \c{base::data.frame} holding the results of the
+An instance of \code{base::data.frame} holding the results of the
 mercator annotation pipeline.
 }
 \description{
-Wraps \c{base::read.table} to parse the result produced by 'Mercator'.
+Wraps \code{base::read.table} to parse the result produced by 'Mercator'.
 }

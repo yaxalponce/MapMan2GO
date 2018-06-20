@@ -1,3 +1,4 @@
+require(MapMan2GO)
 message("USAGE: Rscript path/2/MapMan2GO/exec/plotDepths.R path/2/MapManBins2GO.RData path/2/MapMan2GO")
 
 #' Input command line arguments:

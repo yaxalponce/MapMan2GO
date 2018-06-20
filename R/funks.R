@@ -216,8 +216,8 @@ analyzeSharedWords <- function(mm.2.go.df.MapManBin.GO, mm.2.go.df.MapManBin) {
     bins.gos.no.shared.words <- c()
     percent.shared.words <- c()
     
-    for (j in 1:length(mm.2.go.df.MapManBin.GO)) {
-        splited.st <- strsplit(mm.2.go.df.MapManBin.GO[j], ",")
+    for (j in 1:length(mm.2.go.df$MapManBin.GO)) {
+        splited.st <- strsplit(mm.2.go.df$MapManBin.GO[j], ",")
         
         GO.names <- c()
         for (i in 1:length(splited.st[[1]])) {
@@ -225,11 +225,12 @@ analyzeSharedWords <- function(mm.2.go.df.MapManBin.GO, mm.2.go.df.MapManBin) {
         }
         
         GO.description.splited <- unique(unlist(strsplit(GO.names, split = "[., ,_,:]")))
-        bin.description.splited <- strsplit(sub("\\(", "", sub("\\)", "", sub(",", 
-            "", mm.desc.df$Description[which(mm.desc.df$MapManBin == mm.2.go.df.MapManBin[j])]))), 
+        bin.description.splited <- strsplit(gsub("\\(", "", gsub("\\)", "", gsub(",", 
+            "", mm.desc.df$Description[which(mm.desc.df$MapManBin == mm.2.go.df$MapManBin[j])]))), 
             split = "[., ,_,:]")
-        bin.description.splited <- tolower(bin.description.splited[[1]])
-        
+        bin.description.splited <- if (!length(bin.description.splited)) {
+            c("na")
+        } else tolower(bin.description.splited[[1]])
         bin.description.splited <- bin.description.splited[which(bin.description.splited %in% 
             unlist(words.to.filter) == "FALSE")]
         
@@ -249,20 +250,20 @@ analyzeSharedWords <- function(mm.2.go.df.MapManBin.GO, mm.2.go.df.MapManBin) {
     return(info.bins.words)
 }
 
-#' Wraps \c{base::read.table} to parse the result produced by 'Mercator'.
+#' Wraps \code{base::read.table} to parse the result produced by 'Mercator'.
 #'
 #' @param path.2.mercator.result.tbl The valid file path to the text file
 #' holding the table produced as result by Mercator.
-#' @param add.go.terms If set to \c{TRUE} the MapMan-Bin to Gene Ontology Term
+#' @param add.go.terms If set to \code{TRUE} the MapMan-Bin to Gene Ontology Term
 #' mappings are looked up and automatically added as an additional column.
-#' Default is \c{getOption('MapMan2GO.add.GO.terms', TRUE)}
-#' @param map.man.bins.2.go An instance of \c{base::data.frame} holding the
+#' Default is \code{getOption('MapMan2GO.add.GO.terms', TRUE)}
+#' @param map.man.bins.2.go An instance of \code{base::data.frame} holding the
 #' MapMan-Bin to Gene Ontology Term mappings. It must have at least two
 #' columns: One named 'MapManBin' holding the BINCODEs and another named
 #' 'MapManBin.GO' holding the compound GO Term annotations separated by comma.
-#' Default is \c{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.
+#' Default is \code{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.
 #'
-#' @return An instance of \c{base::data.frame} holding the results of the
+#' @return An instance of \code{base::data.frame} holding the results of the
 #' mercator annotation pipeline.
 #' @export
 readMercatorResultTable <- function(path.2.mercator.result.tbl, add.go.terms = getOption("MapMan2GO.add.GO.terms", 
@@ -283,4 +284,122 @@ readMercatorResultTable <- function(path.2.mercator.result.tbl, add.go.terms = g
         }))
     }
     m.df
+}
+
+#' Uses the MapMan-Bin to Gene Ontology mappings generated within the
+#' \code{MapMan2GO} package to assign a set of Gene Ontology terms to the
+#' argument MapMan-Bin \code{mm.bincode}. Optional recursion looks up GO Terms
+#' assigned to a parent MapMan-Bin, if no GO Terms are found for the argument
+#' MapMan-Bin.
+#'
+#' @param mm.bincode A string identifying the MapMan-Bin, eg. \code{1.1.1.2}.
+#' @param map.man.2.go An instance of \code{base::data.frame} holding the
+#' MapMan-Bin to Gene Ontology mappings. The mapped GO Terms are expected to be
+#' concatenated into a comma separated string. The table must have at least the
+#' following two columns: \code{MapManBin} with the MapMan-Bin's identifiers
+#' (BINCODE), and \code{MapManBin.GO} with the comma separated and concatenated
+#' GO Terms assigned to the respective Bin. Default is
+#' \code{getOption('MapMan2GO.map.man.2.go', mm.2.go.df)}.
+#' @param use.parental.bins A BOOLEAN indicating wether to perform recursive
+#' lookup of GO Terms assigned to parent Bins of \code{mm.bincode}, if
+#' \code{mm.bincode} has no GO Terms assigned in \code{map.man.2.go}. Default
+#' is \code{getOption('MapMan2GO.use.parental.bins', FALSE)}.
+#' @param parental.regex A string representing the regular expresion to be used
+#' to delete the matching trailing substring yielding the parental BINCODE of
+#' \code{mm.bincode}. Default is \code{getOption('MapMan2GO.parental.regex',
+#' '\\.[0-9]+$')}.
+#'
+#' @return A string of comma separated concatenated GO Terms assigned to the
+#' argument \code{mm.bincode} or one of its ancestors (see argument
+#' \code{use.parental.bins}). \code{NA} is returned, if no GO Terms can be
+#' found.
+#' @export
+goaForMapManBin <- function(mm.bincode, map.man.2.go = getOption("MapMan2GO.map.man.2.go", 
+    mm.2.go.df), use.parental.bins = getOption("MapMan2GO.use.parental.bins", FALSE), 
+    parental.regex = getOption("MapMan2GO.parental.regex", "\\.[0-9]+$")) {
+    mm.goa <- NA
+    if (!is.null(mm.bincode) && !is.na(mm.bincode) && mm.bincode != "") {
+        if (mm.bincode %in% map.man.2.go$MapManBin) {
+            mm.goa <- map.man.2.go[which(map.man.2.go$MapManBin == mm.bincode), 
+                "MapManBin.GO"]
+        } else if (use.parental.bins && grepl(parental.regex, mm.bincode)) {
+            parent.bincode <- sub(parental.regex, "", mm.bincode)
+            mm.goa <- goaForMapManBin(parent.bincode, map.man.2.go, use.parental.bins)
+        }
+    }
+    mm.goa
+}
+
+#' Tests function \code{MapMan2GO::goaForMapManBin}.
+#'
+#' @return \code{TRUE} if and only if all tests pass successfully.
+#' @export
+testGoaForMapManBin <- function() {
+    m2go <- data.frame(MapManBin = c("1", "1.1", "2"), MapManBin.GO = LETTERS[1:3])
+    t.1 <- goaForMapManBin("1", map.man.2.go = m2go) == LETTERS[1]
+    t.2 <- goaForMapManBin("1.1", map.man.2.go = m2go) == LETTERS[2]
+    t.3 <- goaForMapManBin("1.1.1", map.man.2.go = m2go) == LETTERS[2]
+    t.4 <- is.na(goaForMapManBin("1.1.1", map.man.2.go = m2go, use.parental.bins = FALSE))
+    t.5 <- is.na(goaForMapManBin(NULL, map.man.2.go = m2go))
+    t.6 <- is.na(goaForMapManBin(NA, map.man.2.go = m2go))
+    t.7 <- is.na(goaForMapManBin("", map.man.2.go = m2go))
+    t.8 <- is.na(goaForMapManBin(mm.bincode = NULL))
+    t.9 <- goaForMapManBin("1.1.1.1.1.1.1", map.man.2.go = m2go) == LETTERS[2]
+    all(c(t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8, t.9))
+}
+
+#' Identifies the subset of evidence codes ancestral to \code{eco.id} that
+#' intersect with argument \code{ancestral.eco.ids}.
+#'
+#' @param eco.id The evidence code's identifier for which to find intersecting
+#' ancestors.
+#' @param ontology An instance of class \code{ontologyIndex::ontology_index}
+#' generated by \code{ontologyIndex::get_ontolgy('eco.obo'}. Default is
+#' \code{getOption('MapMan2GO.eco.ontology', ECO.OBO)}.
+#' @param ancestral.eco.ids A character vector of evidence code IDs to be
+#' intersected with the ancestors of argument \code{eco.id}. Default is
+#' \code{getOption('MapMan2GO.ancestral.eco.ids', eco.first.level)}.
+#'
+#' @return A character vector holding those terms ancestral to \code{eco.id}
+#' found also in \code{ancestral.eco.ids}. \code{character(0)} is returned if
+#' none are found.
+#' @export
+intersectAncestralEvidenceCodes <- function(eco.id, ontology = getOption("MapMan2GO.eco.ontology", 
+    ECO.OBO), ancestral.eco.ids = getOption("MapMan2GO.ancestral.eco.ids", eco.first.level)) {
+    intersect(ancestral.eco.ids, ontology$ancestors[[eco.id]])
+}
+
+#' Classifies any given evidence code into the categories defined in argument
+#' named list \code{ancestral.evidence.code.bins}. The names function of the
+#' categories.
+#'
+#' @param eco.id The evidence code identifier to be classified.
+#' @param ancestral.evidence.code.bins A named list where the names are the
+#' categories and the values are ancestral evidence codes helping to classify
+#' all their children into categories not present in the ontology. Default is
+#' \code{getOption('MapMan2GO.ancestral.evidence.code.bins', list(TRUSTED =
+#' c('ECO:0000006', 'ECO:0000088', 'ECO:0000212', 'ECO:0000352'), 
+#' UNTRUSTED = c('ECO:0000041', 'ECO:0000177', 'ECO:0000204', 'ECO:0000311', 'ECO:0000361',
+#' 'ECO:0000501', 'ECO:0006055')))}.
+#' @param there.can.be.only.one boolean indicating whether to return only a
+#' single group, even if more than one are assigned. In this case define group
+#' priority by the order of groups appearing in argument
+#' \code{ancestral.evidence.code.bins}, the first matching will be returned.
+#' Default is \code{getOption( 'MapMan2GO.there.can.be.only.one', TRUE )}.  
+#'
+#' @return A character vector the names of the categries into which the
+#' argument \code{eco.id} could be put.
+#' @export
+evidenceCodeBins <- function(eco.id, ancestral.evidence.code.bins = getOption("MapMan2GO.ancestral.evidence.code.bins",  # 
+    list(TRUSTED = c("ECO:0000006", "ECO:0000088", "ECO:0000212", "ECO:0000352"), UNTRUSTED = c("ECO:0000041", 
+        "ECO:0000177", "ECO:0000204", "ECO:0000311", 
+        "ECO:0000361", "ECO:0000501", "ECO:0006055"))), there.can.be.only.one = getOption("MapMan2GO.there.can.be.only.one", 
+    TRUE)) {
+    eco.classes <- intersectAncestralEvidenceCodes(eco.id)
+    bin.i <- as.logical(lapply(ancestral.evidence.code.bins, function(eco.bin.ids) {
+        any(eco.classes %in% eco.bin.ids)
+    }))
+    eco.groups <- names(ancestral.evidence.code.bins)[bin.i]
+    if (there.can.be.only.one) 
+        eco.groups[[1]] else eco.groups
 }

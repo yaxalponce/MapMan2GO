@@ -7,7 +7,7 @@ input.args <- commandArgs(trailingOnly = TRUE)
 
 #' Map MapMan-Bins to compound Gene Ontology Term Annotations (GOA):
 mm.leaf.bins <- unique(mm.bins.vs.sprot$MapManBin)
-mm.2.go <- setNames(lapply(mm.leaf.bins, compoundGoAnnotationEntropy), mm.leaf.bins)
+mm.2.go <- setNames(mclapply(mm.leaf.bins, compoundGoAnnotationEntropy), mm.leaf.bins)  #
 mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
     y <- mm.2.go[[x]]
     data.frame(MapManBin = x, MapManBin.GO = y[["MapManBin.GO"]], Shannon.Entropy = y[["Shannon.Entropy"]], 
@@ -18,7 +18,7 @@ mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
 go.terms.not.in.db <- c()
 mm.2.full.desc <- Reduce(rbind, mclapply(names(mm.2.go), function(m.b) {
     m.b.gos <- Reduce(intersect, mm.2.go[[m.b]]$genes.goa)
-    Reduce(rbind, lapply(m.b.gos, function(g.id) {
+    Reduce(rbind, mclapply(m.b.gos, function(g.id) {    #
         if (g.id %in% GO.OBO$id) {
             g.name <- GO.OBO$name[[g.id]]
             g.ancestors <- GO.OBO$ancestors[[g.id]]

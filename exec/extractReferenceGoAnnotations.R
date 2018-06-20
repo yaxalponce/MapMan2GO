@@ -9,6 +9,7 @@ ukb.goa <- fread(input.args[[1]], header = FALSE, sep = "\t", colClasses = rep("
     4))
 ref.gene.ids <- readLines(input.args[[2]])
 ukb.ref.goas <- as.data.frame(ukb.goa[which(ukb.goa$V4 %in% ref.gene.ids), ])
+ukb.ref.goas$V5 <- tolower(ukb.ref.goas$V4)
 
 
 #' Save results:

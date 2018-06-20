@@ -14,7 +14,8 @@ f1Score(true.annos, predicted.annos)
 PREDICTIONS.}
 }
 \value{
-Number - The weighted harmonic mean of precision and recall.
+An instance of \code{base::data.frame} with the following numeric
+columns: precision, recall, true.pos, false.pos, f1.score
 }
 \description{
 Compute the F1-Score for the prediction \code{predicted.annos} as the
