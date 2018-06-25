@@ -387,13 +387,13 @@ intersectAncestralEvidenceCodes <- function(eco.id, ontology = getOption("MapMan
 #' \code{ancestral.evidence.code.bins}, the first matching will be returned.
 #' Default is \code{getOption( 'MapMan2GO.there.can.be.only.one', TRUE )}.  
 #'
+#' @export
 #' @return A character vector the names of the categries into which the
 #' argument \code{eco.id} could be put.
-#' @export
-evidenceCodeBins <- function(eco.id, ancestral.evidence.code.bins = getOption("MapMan2GO.ancestral.evidence.code.bins",  # 
-    list(TRUSTED = c("ECO:0000006", "ECO:0000088", "ECO:0000212", "ECO:0000352"), UNTRUSTED = c("ECO:0000041", 
-        "ECO:0000177", "ECO:0000204", "ECO:0000311", 
-        "ECO:0000361", "ECO:0000501", "ECO:0006055"))), there.can.be.only.one = getOption("MapMan2GO.there.can.be.only.one", 
+evidenceCodeBins <- function(eco.id, ancestral.evidence.code.bins = getOption("MapMan2GO.ancestral.evidence.code.bins", 
+    list(TRUSTED = c("ECO:0000006", "ECO:0000088", "ECO:0000212", "ECO:0000352"), 
+        UNTRUSTED = c("ECO:0000041", "ECO:0000177", "ECO:0000204", "ECO:0000311", 
+            "ECO:0000361", "ECO:0000501", "ECO:0006055"))), there.can.be.only.one = getOption("MapMan2GO.there.can.be.only.one", 
     TRUE)) {
     eco.classes <- intersectAncestralEvidenceCodes(eco.id)
     bin.i <- as.logical(lapply(ancestral.evidence.code.bins, function(eco.bin.ids) {
@@ -402,4 +402,20 @@ evidenceCodeBins <- function(eco.id, ancestral.evidence.code.bins = getOption("M
     eco.groups <- names(ancestral.evidence.code.bins)[bin.i]
     if (there.can.be.only.one) 
         eco.groups[[1]] else eco.groups
+}
+
+#' Enables appending to an existing RData file.
+#'
+#' @param ... the R objects to append
+#' @param list same as in \code{base::save}
+#' @param file A valid file path to an RData file. If it does not exist, it
+#' will be created only containing arguments \code{...}.
+#'
+#' @return The result of invoking \code{base::save}.
+#' @export
+appendToRData <- function(..., list = character(), file) {
+    previous <- load(file)
+    var.names <- c(list, as.character(substitute(list(...)))[-1L])
+    for (var in var.names) assign(var, get(var, envir = parent.frame()))
+    save(list = unique(c(previous, var.names)), file = file)
 }

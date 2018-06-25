@@ -2,6 +2,7 @@
 
 export(addAncestors)
 export(analyzeSharedWords)
+export(appendToRData)
 export(compoundGoAnnotation)
 export(compoundGoAnnotationEntropy)
 export(evidenceCodeBins)
