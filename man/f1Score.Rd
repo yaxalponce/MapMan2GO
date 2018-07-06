@@ -2,22 +2,40 @@
 % Please edit documentation in R/performance.R
 \name{f1Score}
 \alias{f1Score}
-\title{Compute the F1-Score for the prediction \code{predicted.annos} as the
-harmonic mean of precision and recall.}
+\title{Compute the Matthew's correlation coefficient (mcc) and F1-Score for the
+prediction \code{predicted.annos}. F1-Score as the harmonic mean of
+precision and recall. mcc using \code{mccr::mccr}.}
 \usage{
-f1Score(true.annos, predicted.annos)
+f1Score(true.annos, predicted.annos,
+  universe.annos = getOption("MapMan2GO.performance.universe.annotations",
+  ukb.ref.universe.gos),
+  na.for.empty.references = getOption("MapMan2GO.f1.na.for.empty.references",
+  TRUE))
 }
 \arguments{
 \item{true.annos}{A vector of atomic annotations representing the TRUTH.}
 
 \item{predicted.annos}{A vector of atomic annotations representing the
 PREDICTIONS.}
+
+\item{universe.annos}{A vector of atomic annotations representing all
+possible annotations that could theoretically be assigned, i.e. the
+'annotation universe'. Default is
+\code{getOption('MapMan2GO.performance.universe.annotations',
+ukb.ref.universe.gos)}.}
+
+\item{na.for.empty.references}{boolean indicating whether to return all NA
+values in case no references are given. In the case of protein function
+prediction missing references can be interpreted as missing knowledge,
+because there are no proteins with no function. Default is
+\code{getOption('MapMan2GO.f1.na.for.empty.references', TRUE)}.}
 }
 \value{
 An instance of \code{base::data.frame} with the following numeric
-columns: precision, recall, true.pos, false.pos, f1.score
+columns: precision, recall, false.pos.rate, mcc, f1.score
 }
 \description{
-Compute the F1-Score for the prediction \code{predicted.annos} as the
-harmonic mean of precision and recall.
+Compute the Matthew's correlation coefficient (mcc) and F1-Score for the
+prediction \code{predicted.annos}. F1-Score as the harmonic mean of
+precision and recall. mcc using \code{mccr::mccr}.
 }

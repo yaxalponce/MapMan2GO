@@ -2,3 +2,5 @@ inst/doc
 .DS_Store
 .Rhistory
 .*.swp
+*.tar
+*.gz

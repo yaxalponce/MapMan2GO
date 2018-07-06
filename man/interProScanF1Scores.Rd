@@ -41,7 +41,7 @@ MapMan2GO::addAncestors )}.}
 }
 \value{
 An instance of \code{base::data.frame} with the following numeric
-columns: precision, recall, true.pos, false.pos, f1.score, gene.
+columns: precision, recall, true.pos, false.pos, f1.score, mcc, gene.
 }
 \description{
 Computes the F1-scores of InterProScan protein function predictions.

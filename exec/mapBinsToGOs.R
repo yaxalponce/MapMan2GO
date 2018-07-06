@@ -1,7 +1,7 @@
 require(MapMan2GO)
 options(mc.cores = detectCores())
 
-message("USAGE: Rscript path/2/MapMan2GO/exec/mapBinsToGOs.R path/2/MapMan2GO")
+message("USAGE: Rscript path/2/MapMan2GO/exec/mapBinsToGOs.R path/2/MapMan2GO path/2/MercatorRawResults.tsf")
 
 input.args <- commandArgs(trailingOnly = TRUE)
 
@@ -11,7 +11,7 @@ mm.2.go <- setNames(mclapply(mm.leaf.bins, compoundGoAnnotationEntropy), mm.leaf
 mm.2.go.df <- Reduce(rbind, mclapply(names(mm.2.go), function(x) {
     y <- mm.2.go[[x]]
     data.frame(MapManBin = x, MapManBin.GO = y[["MapManBin.GO"]], Shannon.Entropy = y[["Shannon.Entropy"]], 
-        mutual.information = y[["mutual.information"]], n.GO = y[["n.GO"]], n.genes = y[["n.genes"]], 
+        n.GO = y[["n.GO"]], n.genes = y[["n.genes"]], 
         median.n.GO = y[["median.n.GO"]], stringsAsFactors = FALSE)
 }))
 #' Add a full description for each MapMan-Bin's GOA including GO-Term names:
@@ -45,17 +45,24 @@ if (length(go.terms.not.in.db) > 0) {
 
 
 #' Add the MapMan Bins Descriptions to the above table:
-mm.fst <- read.fasta(file.path(path.package("MapMan2GO"), "mapman4.fasta"), seqtype = "AA", 
-    strip.desc = TRUE, as.string = TRUE)
-mm.desc.df <- unique(Reduce(rbind, mclapply(mm.fst, function(x) {
-    x.data <- strsplit(attr(x, "Annot"), " \\| ")[[1]]
-    data.frame(MapManBin = x.data[[1]], Description = x.data[[2]], stringsAsFactors = FALSE)
-})))
-mm.2.full.desc$Bin.Description <- as.character(unlist(mclapply(mm.2.full.desc$MapManBin, 
-    function(x) {
-        mm.desc.df[which(mm.desc.df$MapManBin == x), "Description"]
-    })))
+    mr.full <- readMercatorResultTable(input.args[[2]], add.go.terms = FALSE)
+    mm.desc.df <- unique(mr.full[, c("BINCODE", "NAME")])
+    names(mm.desc.df) <- c("MapManBin", "Description")
 
+    # mm.2.full.desc$Bin.Description <-
+    # as.character(unlist(mclapply(mm.2.full.desc$MapManBin, function(x) {
+    # mm.desc.df[which(mm.desc.df$MapManBin == x), 'Description'] })))
+    
+    value = integer(0)
+    mm.2.full.desc$Bin.Description <- as.character(unlist(mclapply(mm.2.full.desc$MapManBin, 
+        function(x) {
+            if (identical(which(mm.desc.df$MapManBin == x), value)) {
+                mm.2.full.desc$Bin.Description <- NA
+            } else {
+                mm.desc.df[which(mm.desc.df$MapManBin == x), "Description"]
+            }
+            
+        })))
 
 
 #' Some statistics:
@@ -75,10 +82,6 @@ dev.off()
 pdf(file.path(input.args[[1]], "inst", "NumberOfGenesVsNumberOfGoTermsInMapManBinGOA.pdf"))
 plot(mm.2.go.df$n.genes, mm.2.go.df$n.GO, xlab = "Number of genes per MapMan-Bin", 
     ylab = "Number of GO Terms in MapMan-Bin-GOA", pch = 20)
-dev.off()
-#' - Mutual information Histogram
-pdf(file.path(input.args[[1]], "inst", "DistributionOfMutualInformationBetweenBinGoaAndReferenceGoas.pdf"))
-plotDistAsHistAndBox(mm.2.go.df$mutual.information, "Mutual Information between Bin GOA and reference GOAs [bits]")
 dev.off()
 #' - Histogram of number of MapMan-Bins sharing identical GOAs
 pdf(file.path(input.args[[1]], "inst", "NumberOfMapManBinsSharingIdentGOAsHist.pdf"))

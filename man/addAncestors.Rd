@@ -17,7 +17,8 @@ more details.}
 }
 \value{
 A character vector including the argument \code{go.terms} and all
-found ancestors.
+found ancestors. Returns \code{character(0)} if the argument \code{go.terms}
+is NULL, all of its entries are \code{NA}, or if its length equals zero.
 }
 \description{
 Adds all GO Terms that are ancestral to the argument \code{go.terms}.

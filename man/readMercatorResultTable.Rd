@@ -6,7 +6,9 @@
 \usage{
 readMercatorResultTable(path.2.mercator.result.tbl,
   add.go.terms = getOption("MapMan2GO.add.GO.terms", TRUE),
-  map.man.bins.2.go = getOption("MapMan2GO.map.man.bins.2.go", mm.2.go.df))
+  map.man.bins.2.go = getOption("MapMan2GO.map.man.bins.2.go", mm.2.go.df),
+  sanitize.accession = getOption("MapMan2GO.read.mercator.sanitize.accession",
+  FALSE))
 }
 \arguments{
 \item{path.2.mercator.result.tbl}{The valid file path to the text file
@@ -21,6 +23,12 @@ MapMan-Bin to Gene Ontology Term mappings. It must have at least two
 columns: One named 'MapManBin' holding the BINCODEs and another named
 'MapManBin.GO' holding the compound GO Term annotations separated by comma.
 Default is \code{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.}
+
+\item{sanitize.accession}{boolean if TRUE the mercator table column
+'IDENTIFIER' will be passed through \code{MapMan2GO::sanitizeAccession} and
+an additional column 'IDENTIFIER.LONG' will hold the long Uniprot protein
+identifiers. Default is \code{getOption(
+'MapMan2GO.read.mercator.sanitize.accession', FALSE)}.}
 }
 \value{
 An instance of \code{base::data.frame} holding the results of the

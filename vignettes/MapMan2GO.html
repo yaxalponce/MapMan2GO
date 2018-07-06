@@ -1,21 +1,106 @@
-<h2 id="step-by-step-workflow-used-to-map-mapman-bins-to-compound-gene-ontology-term-annotations">Step by step workflow used to map MapMan Bins to compound Gene Ontology Term Annotations</h2>
-<h3 id="use-uniprotkb-swissprot-as-reference-set">Use UniprotKB Swissprot as reference set</h3>
-<p>Curated entries in Swissprot will be used as reference data. Only 100 percent sequence identity will be accepted.</p>
-<h4 id="run-sequence-similarity-search-against-swissprot">Run sequence similarity search against Swissprot</h4>
-<p>Swissprot version is from December 2016. Sequence Similarity Search is carried out with Diamond version (v0.7.9.58).</p>
-<p>Generate the database from Swissprot:</p>
-<p><code>diamond makedb --in uniprot_sprot.fasta -d uniprot_sprot</code></p>
-<p>Submit job to cluster:</p>
-<p><code>bsub -q multicore40 -g /dmnd -e ./dmnd.err -o ./dmnd.out -n 10 -R 'span[hosts=1] rusage[mem=128]' 'diamond blastp -q ../MapMan2GO/inst/mapman4.fasta -d ./uniprot_sprot.dmnd -p 10 -a mapman4_vs_sprot -t /scratch/'</code></p>
-<p>Convert search results to tabular Blast output format: <code>diamond view -a mapman4_vs_sprot.daa -o mapman4_vs_sprot_blast8.txt</code></p>
-<p>And retain only matches of 100 percent sequence identity: <code>awk -F &quot;\t&quot; '{if ($3 == 100.0) { print $1 &quot;\t&quot; $2 }}' mapman4_vs_sprot_blast8.txt | sort -u &gt; mapman4_vs_sprot_blast8_only_100percnt.txt</code> (Result in this R package's <code>inst</code> folder)</p>
-<h3 id="prepare-uniprotkb-gene-ontology-annotations-goa-for-processing-in-r">Prepare UniprotKB Gene Ontology Annotations (GOA) for processing in R</h3>
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Dr. Asis Hallab &amp; Dr. Gabriel Yaxal Ponce-Soto" />
+
+<meta name="date" content="2018-06-25" />
+
+<title>MapMan2GO - Labbook</title>
+
+
+
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">MapMan2GO - Labbook</h1>
+<h4 class="author"><em>Dr. Asis Hallab &amp; Dr. Gabriel Yaxal Ponce-Soto</em></h4>
+<h4 class="date"><em>2018-06-25</em></h4>
+
+
+
+<div id="step-by-step-workflow-used-to-map-mapman-bins-to-compound-gene-ontology-term-annotations." class="section level2">
+<h2>Step by step workflow used to map MapMan Bins to compound Gene Ontology Term Annotations.</h2>
+<p>Leaf MapMan Bins were provided with their respective identifiers.</p>
+<div id="use-uniprotkb-swissprot-as-reference-set." class="section level3">
+<h3>Use UniprotKB Swissprot as reference set.</h3>
+<p>Curated entries in Swissprot (version as available in May 2018) were annotated with Mercator 4 v.0.3.</p>
+</div>
+<div id="format-the-mercator-output-to-the-table-that-will-be-used-in-mapman2go." class="section level3">
+<h3>Format the Mercator output to the table that will be used in MapMan2GO.</h3>
+<p><code>cut -f1,3 uniprot_sprot_mercator.tsf | sed &quot;s/'//g&quot; | awk -F'\t' '$2!=&quot;&quot;' | tr a-z A-z &gt; SwissProt_Mercator4.txt</code></p>
+</div>
+<div id="prepare-uniprotkb-gene-ontology-annotations-goa-for-processing-in-r." class="section level3">
+<h3>Prepare UniprotKB Gene Ontology Annotations (GOA) for processing in R.</h3>
 <p>Download <code>wget ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpa.gz</code></p>
-<p>Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: <code>awk -F &quot;\t&quot; '/^UniProtKB/ {print $6 &quot;\t&quot; $4 &quot;\t&quot; $2}' goa_uniprot_all.gpa | sort -u &gt; goa_uniprot_all_tbl.txt</code> (Result in this R package's <code>inst</code> folder)</p>
-<p>Reduceuce the reference GOAs to those genes in relation with MapManBins (see next section).</p>
-<h3 id="load-mapmanbin-to-swissprot-relations-and-reduce-goas-to-those-referenced-in-the-former">Load MapManBin to Swissprot relations and reduce GOAs to those referenced in the former</h3>
-<p>Done with R script in this package: <code>Rscript ./exec/loadSeqSimResults.R path/2/preProcessedSeqSimSearchResults.txt path/2/UniProtKB_GOA_preprocessed.txt path/2/MapMan2GO</code></p>
-<p>The R script saves the resulting data.frames into a binary image in this package's data folder.</p>
-<h2 id="assign-the-mapman-bins-compound-gene-ontology-annotations-based-on-the-reference-annotations-found-for-genes-related-to-the-respective-bins">Assign the MapMan-Bins compound Gene Ontology Annotations based on the reference annotations found for genes related to the respective Bins</h2>
-<p>The following R script does the job, saves the resulting data.frames in binary format in this R package's data folder and generates some plots about the assignment's quality and trustworthyness.</p>
-<p><code>Rscript ./exec/mapBinsToGOs.R path/2/MapMan2GO</code></p>
+<p>Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms:</p>
+<p><code>awk -F &quot;\t&quot; '/^UniProtKB/ {print $6 &quot;\t&quot; $4 &quot;\t&quot; $2}' goa_uniprot_all.gpa | sort -u &gt; goa_uniprot_all_tbl.txt</code></p>
+<p>(Result in this R package’s <code>inst</code> folder)</p>
+<p>Reduce the reference GOAs to those genes in relation with MapManBins (see section section “Load MapManBin to Swissprot”).</p>
+</div>
+<div id="prepare-protein-ids-for-taxonomy-specific-analysis." class="section level3">
+<h3>Prepare protein IDs for taxonomy specific analysis.</h3>
+<p>Dowload <code>ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_plants.dat.gz</code> Extract protein IDs:</p>
+<p><code>awk '{if (/^AC/) print $2}' uniprot_sprot_plants.dat | awk '{gsub (/;/, &quot;&quot;); print $1}' | sort -u &gt;Protein_ID_plants.txt</code></p>
+</div>
+<div id="load-mapmanbin-to-swissprot-relations-and-reduce-goas-to-those-referenced-in-the-former." class="section level3">
+<h3>Load MapManBin to Swissprot relations and reduce GOAs to those referenced in the former.</h3>
+<p>Done with R script in this package: <code>Rscript ./exec/loadSeqSimResults.R /path/2/preProcessedMercatorResults.txt /path/2/UniProtKB_GOA_preprocessed.txt /path/2/MapMan2GO</code></p>
+<p>The R script saves the resulting data.frames into a binary image in this package’s data folder.</p>
+</div>
+<div id="assign-the-mapman-bins-compound-gene-ontology-annotations-based-on-the-reference-annotations-found-for-genes-related-to-the-respective-bins." class="section level3">
+<h3>Assign the MapMan-Bins compound Gene Ontology Annotations based on the reference annotations found for genes related to the respective Bins.</h3>
+<p>The following R script does the job, saves the resulting data.frames in binary format in this R package’s data folder and generates some plots about the assignment’s quality and trustworthyness. A list of protein IDs is provided in order to additionally analyze this subset.</p>
+<p><code>Rscript ./exec/mapBinsToGOs.R /path/2/MapMan2GO  /path/2/MercatorRawResults.txt  /path/2/IDs_list  subset_name</code></p>
+</div>
+<div id="analyze-the-names-of-mapman-bins-and-go-terms-to-identify-shared-informative-words.-when-identified-the-go-terms-are-added-to-the-goas." class="section level3">
+<h3>Analyze the names of MapMan Bins and GO Terms to identify shared informative words. When identified, the GO terms are added to the GOAs.</h3>
+<p><code>Rscript /path/2/MapMan2GO/addGOstoGOAs.R /path/2/MapMan2GO</code></p>
+<p>The R script saves the resulting data.frames in this R package’s data folder and generates plots about the assignment’s quality and ainformation about the GO Terms added.</p>
+</div>
+<div id="calculate-and-plot-the-mean-median-and-maximum-values-of-go-depths." class="section level3">
+<h3>Calculate and plot the mean, median and maximum values of GO depths.</h3>
+<p><code>Rscript /path/2/MapMan2GO/exec/plotDepths.R /path/2/MapManBins2GO.RData /path/2/MapMan2GO</code></p>
+<p>Return plots which are stored in the in the R package.</p>
+</div>
+<div id="performs-a-revision-on-the-mapman-bins---goas-assignations-classifing-go-terms-used-and-no-used-as-trusted-or-untrusted." class="section level3">
+<h3>Performs a revision on the MapMan Bins - GOAs assignations, classifing GO Terms used and no used as Trusted or Untrusted.</h3>
+<p>Returns plots of this analysis. <code>Rscript /path/2/MapMan2GO/mapBinsRevision.R /path/2/MapMan2GO</code></p>
+</div>
+<div id="evaluate-preformance-prediction." class="section level3">
+<h3>Evaluate preformance prediction.</h3>
+<p>Performs a performance evaluation of the Mercator and InterProScan annotations to GO terms. Saves the resulting data frames in the R package’s data folder and generates plots of the performance. <code>Rscript /path/2/MapMan2GO/exec/evalGoPredictionPerformances.R /path/2/MercatorRawResults.txt /path/2/MapMan2GO</code></p>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

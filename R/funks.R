@@ -49,16 +49,21 @@ compoundGoAnnotation <- function(gene.id, goa.tbl = getOption("MapMan2GO.goa.tbl
 #' more details.
 #'
 #' @return A character vector including the argument \code{go.terms} and all
-#' found ancestors.
+#' found ancestors. Returns \code{character(0)} if the argument \code{go.terms}
+#' is NULL, all of its entries are \code{NA}, or if its length equals zero.
 #' @export
 addAncestors <- function(go.terms, go.obo = getOption("MapMan2GO.go.obo", GO.OBO)) {
-    sort(unique(unlist(lapply(go.terms, function(g.id) {
-        if (g.id %in% go.obo$id) {
-            go.obo$ancestors[[g.id]]
-        } else {
-            g.id
-        }
-    }))))
+    if (is.null(go.terms) || all(is.na(go.terms)) || length(go.terms) == 0) {
+        character(0)
+    } else {
+        sort(unique(unlist(lapply(go.terms, function(g.id) {
+            if (g.id %in% go.obo$id) {
+                go.obo$ancestors[[g.id]]
+            } else {
+                g.id
+            }
+        }))))
+    }
 }
 
 #' Infers the compound GO annotations found for the genes related to the
@@ -175,14 +180,21 @@ mutualInformationBinGoaGenesGoas <- function(genes.goa) {
 #'
 #' @param x The values passed into \code{hist} and \code{boxplot}
 #' @param The main title of the resulting plot
+#' @param summary.as.title boolean indicating whether to add the output of
+#' \code{base::summary(x)} to the title of the plot. Default is
+#' \code{getOption('MapMan2GO.plot.dist.summary.as.title', FALSE)}.
 #'
 #' @export
 #' @return TRUE if and only if no error has occurred
-plotDistAsHistAndBox <- function(x, main) {
+plotDistAsHistAndBox <- function(x, main, summary.as.title = getOption("MapMan2GO.plot.dist.summary.as.title", 
+    FALSE)) {
     def.mar <- par("mar")
     m.1 <- def.mar
     m.1[[1]] <- 0
     op <- par(mfcol = 2:1, mar = m.1)
+    if (summary.as.title) {
+        main <- paste(c(main, capture.output(summary(x))), collapse = "\n")
+    }
     hist(x, col = "lightgrey", main = main, xlab = NULL)
     m.2 <- def.mar
     m.2[[3]] <- 0
@@ -262,12 +274,19 @@ analyzeSharedWords <- function(mm.2.go.df.MapManBin.GO, mm.2.go.df.MapManBin) {
 #' columns: One named 'MapManBin' holding the BINCODEs and another named
 #' 'MapManBin.GO' holding the compound GO Term annotations separated by comma.
 #' Default is \code{getOption('MapMan2GO.map.man.bins.2.go', mm.2.go.df)}.
+#' @param sanitize.accession boolean if TRUE the mercator table column
+#' 'IDENTIFIER' will be passed through \code{MapMan2GO::sanitizeAccession} and
+#' an additional column 'IDENTIFIER.LONG' will hold the long Uniprot protein
+#' identifiers. Default is \code{getOption(
+#' 'MapMan2GO.read.mercator.sanitize.accession', FALSE)}.
 #'
 #' @return An instance of \code{base::data.frame} holding the results of the
 #' mercator annotation pipeline.
 #' @export
 readMercatorResultTable <- function(path.2.mercator.result.tbl, add.go.terms = getOption("MapMan2GO.add.GO.terms", 
-    TRUE), map.man.bins.2.go = getOption("MapMan2GO.map.man.bins.2.go", mm.2.go.df)) {
+    TRUE), map.man.bins.2.go = getOption("MapMan2GO.map.man.bins.2.go", mm.2.go.df), 
+    sanitize.accession = getOption("MapMan2GO.read.mercator.sanitize.accession", 
+        FALSE)) {
     m.df <- read.table(path.2.mercator.result.tbl, header = TRUE, sep = "\t", colClasses = c(rep("character", 
         4), "logical"), quote = "", na.strings = "", comment.char = "", stringsAsFactors = FALSE)
     for (i.col in colnames(m.df)) {
@@ -282,6 +301,10 @@ readMercatorResultTable <- function(path.2.mercator.result.tbl, add.go.terms = g
                 map.man.bins.2.go[[i, "MapManBin.GO"]]
             } else NA
         }))
+    }
+    if (sanitize.accession) {
+        m.df$IDENTIFIER.LONG <- m.df$IDENTIFIER
+        m.df$IDENTIFIER <- sanitizeAccession(m.df$IDENTIFIER)
     }
     m.df
 }
@@ -418,4 +441,16 @@ appendToRData <- function(..., list = character(), file) {
     var.names <- c(list, as.character(substitute(list(...)))[-1L])
     for (var in var.names) assign(var, get(var, envir = parent.frame()))
     save(list = unique(c(previous, var.names)), file = file)
+}
+
+#' Add alpha channel (transparency) to a color.
+#'
+#' @param col The color to add transparency to
+#' @param alpha A value between zero and one, the higher the more transparency.
+#' Default is \code{.25}.
+#'
+#' @return The modified color \code{col}.
+#' @export
+addAlpha <- function(col, alpha = 0.25) {
+    apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha = alpha))
 }

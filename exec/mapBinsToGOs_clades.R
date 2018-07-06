@@ -1,18 +1,18 @@
 require(MapMan2GO)
 options(mc.cores = detectCores())
 
-message("USAGE: Rscript path/2/MapMan2GO/exec/mapBinsToGOs.R path/2/MapMan2GO [/path/2/SwissProtIDs] [SwissProtIDs_subset_name]")
+message("USAGE: Rscript path/2/MapMan2GO/exec/mapBinsToGOs.R path/2/MapMan2GO path/2/MercatorRawResults.tsf [/path/2/SwissProtIDs] [SwissProtIDs_subset_name]")
 
 input.args <- commandArgs(trailingOnly = TRUE)
 
 #' When a SwissProtIDs file is provided, perform the analysis for both, the whole SwissProt and the subset
 
 #' If subset is given,
-#' generate two mm.2.go, one called 'all' and one called 'subset' or input.arg[[3]] '... [SwissProtIDs subset_name]'
+#' generate two mm.2.go, one called 'all' and one called 'subset' or input.arg[[4]] '... [SwissProtIDs subset_name]'
 ref.prot.sets <- list(all = mm.bins.vs.sprot)
-if (length(input.args) > 1) {
-    subset.name <- input.args[[3]]
-    clade.ID <- unlist((fread(input.args[[2]], header = FALSE, data.table = FALSE, 
+if (length(input.args) > 2) {
+    subset.name <- input.args[[4]]
+    clade.ID <- unlist((fread(input.args[[3]], header = FALSE, data.table = FALSE, 
         stringsAsFactors = FALSE)), use.names = FALSE)
     ref.prot.sets[subset.name] <- list(mm.bins.vs.sprot[which(mm.bins.vs.sprot$Swissprot.Short.ID %in% 
         clade.ID), ])
@@ -64,12 +64,10 @@ for (ref.set.name in names(ref.prot.sets)) {
     
     
     #' Add the MapMan Bins Descriptions to the above table:
-    mm.fst <- read.fasta(file.path(path.package("MapMan2GO"), "mapman4.fasta"), 
-        seqtype = "AA", strip.desc = TRUE, as.string = TRUE)
-    mm.desc.df <- unique(Reduce(rbind, mclapply(mm.fst, function(x) {
-        x.data <- strsplit(attr(x, "Annot"), " \\| ")[[1]]
-        data.frame(MapManBin = x.data[[1]], Description = x.data[[2]], stringsAsFactors = FALSE)
-    })))
+    mr.full <- readMercatorResultTable(input.args[[2]], add.go.terms = FALSE)
+    mm.desc.df <- unique(mr.full[, c("BINCODE", "NAME")])
+    names(mm.desc.df) <- c("MapManBin", "Description")
+
     # mm.2.full.desc$Bin.Description <-
     # as.character(unlist(mclapply(mm.2.full.desc$MapManBin, function(x) {
     # mm.desc.df[which(mm.desc.df$MapManBin == x), 'Description'] })))
@@ -88,8 +86,8 @@ for (ref.set.name in names(ref.prot.sets)) {
     
     
     #' Some statistics:
-    #' - Histogram of Number of GO Terms per MapMan-Bin GOA
-    fl.name <- paste(ref.set.name, "NumberOfMapManBinsSharingIdentGOAsHist.pdf", 
+    #' - Histogram of Number of GO Terms per MapMan-Bin GOA     # when successful, repeat this plot, it was overwritten, now the name is corrected
+    fl.name <- paste(ref.set.name, "NumberOfGoTermsPerMapManBinGoaHist.pdf", 
         sep = "_")
     pdf(file.path(input.args[[1]], "inst", fl.name))
     plotDistAsHistAndBox(mm.2.go.df$n.GO, "Number of GO Terms per MapMan-Bin GOA")
@@ -106,8 +104,8 @@ for (ref.set.name in names(ref.prot.sets)) {
     pdf(file.path(input.args[[1]], "inst", fl.name))
     plotDistAsHistAndBox(mm.2.go.df$n.genes, "Number of genes per MapMan-Bin")
     dev.off()
-    #' - Number of genes vs Number of GO Terms in the Bin-GOA:
-    fl.name <- paste(ref.set.name, "GenesPerMapManBinHist.pdf", 
+    #' - Number of genes vs Number of GO Terms in the Bin-GOA:                     # Do again
+    fl.name <- paste(ref.set.name, "NumberOfGenesVsNumberOfGoTermsInMapManBinGOA.pdf", 
         sep = "_")
     pdf(file.path(input.args[[1]], "inst", fl.name))
     plot(mm.2.go.df$n.genes, mm.2.go.df$n.GO, xlab = "Number of genes per MapMan-Bin", 
@@ -141,7 +139,7 @@ for (ref.set.name in names(ref.prot.sets)) {
     #' the iteration that is not doing 'all', rename the results appending the
     #' ref.set.name. This preserves backward compatibility, and enables storing
     #' many mappings in a single RData.
-    rdata.file <- file = file.path(input.args[[1]], "data", "MapManBins2GO.RData")
+    rdata.file <- (file = file.path(input.args[[1]], "data", "MapManBins2GO.RData") )
     if (ref.set.name != "all") {
         ref.set.results <- c(paste("mm.2.go", ref.set.name, sep = "."), paste("mm.2.go.df", 
             ref.set.name, sep = "."), paste("mm.2.full.desc", ref.set.name, sep = "."), 

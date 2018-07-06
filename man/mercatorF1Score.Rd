@@ -36,8 +36,9 @@ default here is \code{getOption( 'MapMan2GO.process.ref.annos.funk',
 MapMan2GO::addAncestors )}.}
 }
 \value{
-An instance of \code{base::data.frame} with the following numeric
-columns: precision, recall, true.pos, false.pos, f1.score
+An instance of \code{base::data.frame} with the folque gold standard
+proteinslowing numeric columns: precision, recall, true.pos, false.pos,
+f1.score, mcc, gene (the reference)
 }
 \description{
 For each row in \code{mercator.annos} measures the respective F1-Score of the

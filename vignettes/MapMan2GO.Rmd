@@ -1,6 +1,6 @@
 ---
 title: "MapMan2GO - Labbook"
-author: "Dr. Asis Hallab"
+author: "Dr. Asis Hallab & Gabriel Yaxal Ponce Soto"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -11,45 +11,61 @@ vignette: >
 
 ## Step by step workflow used to map MapMan Bins to compound Gene Ontology Term Annotations
 
-### Use UniprotKB Swissprot as reference set
+Leaf MapMan Bins were provided with their respective identifiers.
 
-Curated entries in Swissprot will be used as reference data. Only 100 percent sequence identity will be accepted. 
+### Use UniprotKB Swissprot as reference set.
 
-#### Run sequence similarity search against Swissprot
+Curated entries in Swissprot (version as available in May 2018) were annotated with Mercator 4 v.0.3.
 
-Swissprot version is from December 2016. Sequence Similarity Search is carried out with Diamond version (v0.7.9.58).
+### Format the Mercator output to the table that will be used in MapMan2GO.
 
-Generate the database from Swissprot:
-
-`diamond makedb --in uniprot_sprot.fasta -d uniprot_sprot`
-
-Submit job to cluster:
-
-`bsub -q multicore40 -g /dmnd -e ./dmnd.err -o ./dmnd.out -n 10 -R 'span[hosts=1] rusage[mem=128]' 'diamond blastp -q ../MapMan2GO/inst/mapman4.fasta -d ./uniprot_sprot.dmnd -p 10 -a mapman4_vs_sprot -t /scratch/'`
-
-Convert search results to tabular Blast output format: `diamond view -a mapman4_vs_sprot.daa -o mapman4_vs_sprot_blast8.txt`
-
-And retain only matches of 100 percent sequence identity: `awk -F "\t" '{if ($3 == 100.0) { print $1 "\t" $2 }}' mapman4_vs_sprot_blast8.txt | sort -u > mapman4_vs_sprot_blast8_only_100percnt.txt` (Result in this R package's `inst` folder)
+`cut -f1,3 uniprot_sprot_mercator.tsf | sed "s/'//g" | awk -F'\t' '$2!=""' | tr a-z A-z > SwissProt_Mercator4.txt `
 
 ### Prepare UniprotKB Gene Ontology Annotations (GOA) for processing in R
 
 Download `wget ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpa.gz`
 
-Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: `awk -F "\t" '/^UniProtKB/ {print $6 "\t" $4 "\t" $2}' goa_uniprot_all.gpa | sort -u > goa_uniprot_all_tbl.txt` (Result in this R package's `inst` folder)
+Extract important information: UniProtKB gene accessions, evidence codes, and Gene Ontology terms: `awk -F "\t" '/^UniProtKB/ {print $6 "\t" $4 "\t" $2}' goa_uniprot_all.gpa | sort -u > goa_uniprot_all_tbl.txt`.
 
-Reduceuce the reference GOAs to those genes in relation with MapManBins (see next section).
+Reduce the reference GOAs to those genes in relation with MapManBins (see section section "Load MapManBin to Swissprot").
+
+### Prepare protein IDs for taxonomy specific analysis.
+
+Dowload `ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_sprot_plants.dat.gz`
+
+Extract protein IDs: 
+
+`awk '{if (/^AC/) print $2}' uniprot_sprot_plants.dat | awk '{gsub (/;/, ""); print $1}' | sort -u >Protein_ID_plants.txt`
 
 ### Load MapManBin to Swissprot relations and reduce GOAs to those referenced in the former
 
-Done with R script in this package: `Rscript ./exec/loadSeqSimResults.R path/2/preProcessedSeqSimSearchResults.txt path/2/UniProtKB_GOA_preprocessed.txt path/2/MapMan2GO`
+Done with R script in this package: `Rscript ./exec/loadSeqSimResults.R /path/2/preProcessedMercatorResults.txt /path/2/UniProtKB_GOA_preprocessed.txt /path/2/MapMan2GO`
 
 The R script saves the resulting data.frames into a binary image in this package's data folder.
 
 ## Assign the MapMan-Bins compound Gene Ontology Annotations based on the reference annotations found for genes related to the respective Bins
 
-The following R script does the job, saves the resulting data.frames in binary format in this R package's data folder and generates some plots about the assignment's quality and trustworthyness.
+The following R script does the job, saves the resulting data.frames in binary format in this R package's data folder and generates some plots about the assignment's quality and trustworthyness. A list of protein IDs is provided in order to additionally analyze this subset.
 
-`Rscript ./exec/mapBinsToGOs.R path/2/MapMan2GO`
+`Rscript ./exec/mapBinsToGOs.R path/2/MapMan2GO path/2/MercatorRawResults.txt [/path/2/SwissProtIDs] [SwissProtIDs_subset_name]`
+
+### Analyze the names of MapMan Bins and GO Terms to identify shared informative words. 
+
+The following R script add the GO Terms which descriptions share words with the MapMan-Bin's description. When identified, the GO terms are added to the GOAs. Saves the resulting data.frames in binary format in the data folder and generates plots about the assignment's quality and information about the GO Terms added. This step can be ignored in order to keep the GOAs only as the intersection.
+
+`Rscript ./exec/addGOstoGOAs.R /path/2/MapMan2GO`
+
+### Calculate and plot the mean, median and maximum values of GO depths.
+
+`Rscript ./exec/plotDepths.R /path/2/MapManBins2GO.RData /path/2/MapMan2GO`
+
+Return plots which are stored in the in the R package.
+
+### Performs a revision on the MapMan Bins - GOAs assignations, classifing GO Terms used and no used as Trusted or Untrusted.
+
+The following R script performs a revision on the MapMan Bins - GOAs assignation, classifying the GO Terms, both, used and no used, as Trusted or Untrusted according to their Evidence Codes (ECO). Returns plots of this analysis.
+
+`Rscript ./exec/mapBinsRevision.R /path/2/MapMan2GO`
 
 ## Evaluate Mercator's performance based on MapMan-Bin to GO annotations
 
@@ -59,12 +75,12 @@ Competetive methods are
 - Mercator (MapMan-Bins)
 - InterProScan (InterPro2GO)
 - Best Blast
-- Blasts2GO
+- Blasts2GO    (TO DO)
 
 ### Extract reference GOAs and InterPro-annotations from Swissprot's GOA
 
 As done above we pre-process the large Swissprot GOA file to extract GO and
-InterPro annotations. Then the result is read in in R and only those rows are
+InterPro annotations. Then the result is read in R and only those rows are
 retained that hold function annotations for our "gold standard" (reference gene
 set).
 
@@ -77,8 +93,67 @@ Uniprot/Swissprot. Here, we use _Arabidopsis thaliana_:
 
 `grep -P '^>' uniprot_sprot.fasta | grep 'OS=Arabidopsis thaliana' | awk -F '|' '{print $2}' > uniprot_sprot_arabidopsis_thaliana_protein_accessions.txt`
 
-Finally execute the script to extract the reference annotations and store them
+Execute the script to extract the reference annotations and store them
 in this project's data:
 
 `Rscript ./exec/extractReferenceGoAnnotations.R goa_uniprot_all_ipr_tbl.txt uniprot_sprot_arabidopsis_thaliana_protein_accessions.txt path/2/MapMan2GO`
 
+The performance evaluation of Best Blast was done as described bellow:
+
+0) Generate a protein fasta file containing all Arabidopsis proteins contained in Swissprot
+
+### R-Code
+
+`require(seqinr)`
+
+`sp <- read.fasta( '/path/2/uniprot_sprot.fasta', seqtype='AA', as.string=T, strip.desc=T )`
+
+`options(mc.cores=detectCores())`
+
+`sp.ath.i <- as.logical(unlist(mclapply(sp, function(x) grepl( 'OS=Arabidopsis thaliana', attr(x,"Annot"), fixed=TRUE ))))
+sp.ath <- sp[sp.ath.i]`
+
+`write.fasta(sp.ath, names=names(sp.ath), file.out='.i/path/2/store/uniprot_sprot_just_ath.fasta')`
+
+1) Generate a Docker Container with Diamond (Blastp-Alternative)
+
+`docker build -f DiamondAlignerUbuntu -t diamond_aligner_ubuntu:latest .`
+
+2) Create the Diamond database out of the Swissprot curated protein fasta file:
+
+`diamond makedb --in uniprot_sprot.fasta -d uniprot_sprot`
+
+3) Search all the sequences from _Arabidopsis thaliana_ against SwissProt:
+
+`diamond blastp -d uniprot_sprot.dmnd -q uniprot_sprot_just_ath.fasta -o sp_ath_vs_ukb_sprot`
+
+4) Exclude all tautologic matches against Arabidopsis proteins contained in
+SwissProt. For this use the Arabidopsis Swissprot Gene Accessions generated
+within the MapMan2GO project.
+
+`grep -vf uniprot_sprot_arabidopsis_thaliana_protein_accessions.txt sp_ath_vs_ukb_sprot > sp_ath_vs_ukb_sprot_no_athal.txt`
+
+5) Only retain the best hit for each Arabidopsis query protein
+
+Open an interactive R session, and execute the following code:
+### R-Code
+
+`t.v.s <- read.table( './sp_ath_vs_ukb_sprot_no_athal.txt, sep="\t", stringsAsFactors=F )`
+
+`ath.ids <- readLines( './uniprot_sprot_arabidopsis_thaliana_protein_accessions.txt' )`
+
+`t.v.s$id <- sub( "^[^|]+\\|", "", sub( "\\|[^|]+$", "", t.v.s$V2 ) )`
+
+`t.v.s.sort <- t.v.s[ order( t.v.s$V1, t.v.s$V11 ), ]`
+
+`t.v.s.best.hit <- t.v.s.sort[ ! duplicated( t.v.s.sort$V1 ), ]`
+
+`t.v.s.map <- t.v.s.best.hit[ which( t.v.s.best.hit$V3 == 100.0 ), ]`
+
+`write.table( t.v.s.map, './sp_ath_vs_ukb_sprot_best_map.txt', row.names=FALSE, sep="\t", col.names=FALSE, quote=FALSE )`
+
+Finally, execute the script to evaluate the performance of all methodologies
+
+`Rscript ./exec/evalGoPredictionPerformances.R  path/2/mercator_result.txt  path/2/best_blast_preprocessed_results_table.txt  path/2/protein_identifiers_2_exclude  path/2/preprocessed_uniprot_goa_table.txt  path/2/MapMan2GO `
+
+Returns plots of the F1 score for each methodology. 
