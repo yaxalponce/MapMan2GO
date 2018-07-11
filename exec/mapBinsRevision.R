@@ -25,7 +25,7 @@ for (i in 1:length(mm.2.go.df$MapManBin)) {
         sep = "")
     GO.joined <- sort(unique(unlist(eval(parse(text = b)))))
     no.used.gos <- setdiff(GO.joined, used.gos)
-    sh.entropy[i] <- entropy(table(as.character(no.used.gos)))
+    sh.entropy[i] <- shannonEntropy(table(as.character(no.used.gos)))
 
 #' Analyze Evidence Codes
     eco.used.gos.all <- unique(unlist(mclapply(used.gos, function(x) { 
@@ -85,6 +85,6 @@ boxplot(trusted.used, untrusted.used, trusted.no.used, untrusted.no.used, col=c(
 legend("topright", inset=.05, c("Used","No used"), fill=c("lightgrey", "white"))
 dev.off()
 
-save(sh,entropy, means.bins.rel.ref.abund, trusted.used, untrusted.used, trusted.no.used, untrusted.no.used, file = file.path(input.args[[1]], 
+save(sh.entropy, means.bins.rel.ref.abund, trusted.used, untrusted.used, trusted.no.used, untrusted.no.used, file = file.path(input.args[[1]], 
     "data", "MapManBinsRevision.RData"))
 

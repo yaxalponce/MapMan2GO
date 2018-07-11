@@ -118,7 +118,7 @@ compoundGoAnnotationEntropy <- function(map.man.bin, mm.bins.vs.genes = getOptio
         genes.goa <- setNames(lapply(gene.ids, function(g.id) {
             compoundGoAnnotation(g.id, goa.tbl, gene.col, go.col)
         }), gene.ids)
-        s.e <- entropy(table(as.character(unlist(lapply(genes.goa, paste, collapse = ",")))))
+        s.e <- shannonEntropy(table(as.character(unlist(lapply(genes.goa, paste, collapse = ",")))))
         m.i <- mutualInformationBinGoaGenesGoas(genes.goa)
         bin.goa <- Reduce(intersect, genes.goa[which(as.logical(lapply(genes.goa, 
             function(x) length(x) > 0 && !is.na(x) && !is.null(x))))])
