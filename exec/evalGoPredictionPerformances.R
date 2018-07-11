@@ -6,14 +6,15 @@ message("USAGE: Rscript path/2/MapMan2GO/exec/evalGoPredictionPerformances.R pat
 input.args <- commandArgs(trailingOnly = TRUE)
 
 
-#' Compute F1-Scores of competing GO predictors.
-#' #############################################
+#' Compute F1-Scores and Matthews correlation coefficient of competing GO predictors.
+#' ##################################################################################
 
 #' First consider the universe of all possible GO term annotations 'as is',
 #' that is without adding ancestral GO terms.
 
 ipr.annos <- ukb.ref.goas[!is.na(ukb.ref.goas$V3), ]
-ipr.annos.no.ref.anc <- interProScanF1Scores(ipr.annos, process.ref.annos.funk = identity)
+ipr.annos.no.ref.anc <- predictorPerformance(ipr.annos, pa.gene.col = "V4", pa.anno.col = "V2", 
+    process.annos.funk = identity)
 
 best.blast.tbl <- extractBestBlastHits(input.args[[2]], input.args[[3]])
 goa.tbl <- fread(input.args[[4]], sep = "\t", data.table = FALSE, stringsAsFactors = FALSE, 
@@ -21,27 +22,32 @@ goa.tbl <- fread(input.args[[4]], sep = "\t", data.table = FALSE, stringsAsFacto
 blast.hit.goa <- goa.tbl[which(goa.tbl$V3 %in% best.blast.tbl$hit.ukb.short.id), 
     ]
 rm(goa.tbl)
-bb.annos.no.ref.anc <- bestBlastF1Score(best.blast.tbl, blast.hit.goa, process.ref.annos.funk = identity)
+best.blast.pred <- bestBlastPredictions(best.blast.tbl, blast.hit.goa)
+bb.annos.no.ref.anc <- predictorPerformance(best.blast.pred, pa.gene.col = "query", 
+    pa.anno.col = "GO", process.annos.funk = identity)
 
 
 #' Now consider the universe of all possible GO term annotations to include
 #' ancestral terms. Also extend both reference GO term annotations as well as
-#' predicted GO term annotations with ancestral terms.
+#' predicted GO term annotations with ancestral termsc
 
 options(MapMan2GO.performance.universe.annotations = ukb.ref.universe.gos.w.anc)
 
 mercator.annos <- readMercatorResultTable(input.args[[1]], sanitize.accession = TRUE)
-mercator.annos.f1 <- mercatorF1Score(mercator.annos)
+mercator.annos.f1 <- predictorPerformance(mercator.annos, pa.gene.col = "IDENTIFIER", 
+    pa.anno.col = "MapManBin.GO", process.predicted.annos.funk = splitMapManBinGOAs, 
+    reference.genes = tolower(ref.gene.ids), rga.gene.col = "V5")
 
-ipr.annos.w.ref.anc <- interProScanF1Scores(ipr.annos)
+ipr.annos.w.ref.anc <- predictorPerformance(ipr.annos, pa.gene.col = "V4", pa.anno.col = "V2")
 
-bb.annos.w.ref.anc <- bestBlastF1Score(best.blast.tbl, blast.hit.goa)
+bb.annos.w.ref.anc <- predictorPerformance(best.blast.pred, pa.gene.col = "query", 
+    pa.anno.col = "GO")
 
 #' Set the respective option back to default value:
 options(MapMan2GO.performance.universe.annotations = NULL)
 
 
-#' Plot histograms of F1-Scores:
+#' Plot histograms of F1-Scores and Matthews correlation coefficient:
 scores <- c("precision", "recall", "false.pos.rate", "f1.score", "mcc")
 
 #' - for mercator
@@ -98,27 +104,37 @@ plotDistAsHistAndBox(best.blast.tbl[which(best.blast.tbl$query.ukb.short.id %in%
 dev.off()
 
 
-#' For the above 'difficult to predict protein functions' (bb.queries) plot the
-#' histograms of MCC scores into one graph:
-pdf(file.path(input.args[[length(input.args)]], "inst", "difficultToPredictProtFunc_all_MCC_Hist.pdf"))
-colors <- brewer.pal(3, "Dark2")
-col.alpha <- addAlpha(colors)
-bb.queries.all.mcc <- c(bb.annos.w.ref.anc[bb.i, "mcc"], mercator.annos.f1[which(mercator.annos.f1$gene %in% 
-    tolower(bb.queries)), "mcc"], ipr.annos.w.ref.anc[which(ipr.annos.w.ref.anc$gene %in% 
-    bb.queries), "mcc"])
-x.min <- min(bb.queries.all.mcc, na.rm = TRUE)
-x.max <- max(bb.queries.all.mcc, na.rm = TRUE)
-bb.h <- hist(bb.annos.w.ref.anc[bb.i, "mcc"], plot = FALSE)
-mer.h <- hist(mercator.annos.f1[which(mercator.annos.f1$gene %in% tolower(bb.queries)), "mcc"], plot = FALSE)
-ipr.h <- hist(ipr.annos.w.ref.anc[which(ipr.annos.w.ref.anc$gene %in% bb.queries), 
-    "mcc"], plot = FALSE)
-y.max <- max(c(bb.h$counts, mer.h$counts, ipr.h$counts), na.rm = TRUE)
-plot(bb.h, main = "Comparison of MCC for difficult to predict protein functions", 
-    xlim = c(x.min, x.max), ylim = c(0, y.max), xlab = "Matthew's correlation coefficient (MCC)", 
-    col = col.alpha[[1]], border = colors[[1]])
-plot(mer.h, col = col.alpha[[2]], border = colors[[2]], add = TRUE)
-plot(ipr.h, col = col.alpha[[3]], border = colors[[3]], add = TRUE)
-dev.off()
+
+#' Scatterplots of of n.truth againt false positives, true positives and n.pred:
+scatter.y <- c("n.pred", "false.pos", "true.pos")
+
+#' - for mercator
+for (scatter.i in scatter.y) {
+    pdf(file.path(input.args[[length(input.args)]], "inst", paste("mercator_", 
+        scatter.i, "_Scatter.pdf", sep = "")))
+    plot(mercator.annos.f1$n.truth, mercator.annos.f1[, scatter.i], xlab = "n.truth", ylab = scatter.i, pch = 20, 
+         main = paste("Mercator", scatter.i, "distribution"))
+    dev.off()
+}
+
+#' - for Best Blast with ancestral GO Terms
+for (scatter.i in scatter.y) {
+    pdf(file.path(input.args[[length(input.args)]], "inst", paste("bestBlastWithAncRefGoTerms_", 
+        scatter.i, "_Scatter.pdf", sep = "")))
+    plot(bb.annos.w.ref.anc$n.truth, bb.annos.w.ref.anc[, scatter.i], xlab = "n.truth", ylab = scatter.i, pch = 20, 
+         main = paste("Mercator", scatter.i, "distribution"))
+    dev.off()
+}
+
+#' - for InterProScan with ancestral GO Terms
+for (scatter.i in scatter.y) {
+    pdf(file.path(input.args[[length(input.args)]], "inst", paste("interProScanWithAncRefGoTerms_", 
+        scatter.i, "_Scatter.pdf", sep = "")))
+    plot(ipr.annos.w.ref.anc$n.truth, ipr.annos.w.ref.anc[, scatter.i], xlab = "n.truth", ylab = scatter.i, pch = 20, 
+         main = paste("Mercator", scatter.i, "distribution"))
+    dev.off()
+}
+
 
 
 #' Save results:

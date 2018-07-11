@@ -306,6 +306,7 @@ readMercatorResultTable <- function(path.2.mercator.result.tbl, add.go.terms = g
         m.df$IDENTIFIER.LONG <- m.df$IDENTIFIER
         m.df$IDENTIFIER <- sanitizeAccession(m.df$IDENTIFIER)
     }
+    
     m.df
 }
 
@@ -454,3 +455,52 @@ appendToRData <- function(..., list = character(), file) {
 addAlpha <- function(col, alpha = 0.25) {
     apply(sapply(col, col2rgb)/255, 2, function(x) rgb(x[1], x[2], x[3], alpha = alpha))
 }
+
+#' Splits the concatenated Gene Ontology Term Annotations (GOA) assigned to a
+#' MapManBin into a vector.
+#'
+#' @param map.man.bin.goas A characer vector of MapManBin-GOAs
+#'
+#' @return A character vector of sorted, unique GO Terms found in the comma
+#' separated MapManBin-GOAs in argument \code{map.man.bin.goas}.
+#' @export
+splitMapManBinGOAs <- function(map.man.bin.goas) {
+    sort(unique(unlist(strsplit(map.man.bin.goas, ","))))
+}
+
+#' Computes the normalized empirical Shannon Entropy for counts delivered in
+#' the argument \code{counts.table}. Basis of the \code{log} function is
+#' natural and normalization is done by division by the maximum entropy
+#' \code{log(length(counts.table))} (see
+#' \href{https://en.wikipedia.org/wiki/Entropy <- (information <- theory)#Efficiency)}{Normalized
+#' Entropy}.
+#'
+#' @param counts.table result of invoking \code{base::table(count.vector)}
+#' @param log.base The base of the logarithm. Default is the natural logarithm,
+#' \code{getOption('MapMan2GO.entropy.log.base', base::exp(1))}.
+#'
+#' @export
+#' @return A numeric value element [0,1], the normalized Shannon Entropy.
+shannonEntropy <- function(counts.table, log.base = getOption("MapMan2GO.entropy.log.base", 
+    base::exp(1))) {
+    if (length(counts.table) <= 1) 
+        return(0)
+    c.t.s <- sum(counts.table)
+    -sum(sapply(counts.table, function(x) x/c.t.s * log(x/c.t.s, base = log.base)))/log(length(counts.table), 
+        base = log.base)
+}
+
+#' Testing function \code{MapMan2GO::shannonEntropy}
+#'
+#' @export
+#' @return \code{TRUE} if and only if all tests are passed successfully.
+testShannonEntropy <- function() {
+    test.1 <- identical(shannonEntropy(table(c())), 0)
+    test.2 <- identical(shannonEntropy(table(NULL)), 0)
+    test.3 <- identical(shannonEntropy(table(NA)), 0)
+    test.4 <- identical(shannonEntropy(table(1)), 0)
+    test.5 <- identical(shannonEntropy(table(1:2)), 1)
+    all(c(test.1, test.2, test.3, test.4, test.5))
+}
+
+
